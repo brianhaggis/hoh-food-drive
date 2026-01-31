@@ -66,20 +66,21 @@ def send_volunteer_confirmation(volunteer_email, volunteer_name, show):
 
                 <h3>What You'll Get:</h3>
                 <ul>
-                    <li><strong>Two free tickets</strong> to the show</li>
+                    <li><strong>Two free tickets</strong> to enjoy the show</li>
                     <li>The satisfaction of making a real difference in your community</li>
                 </ul>
 
                 <h3>What You'll Do:</h3>
                 <ul>
-                    <li><strong>Collect food donations</strong> from attendees during the show</li>
-                    <li><strong>Deliver the collected items</strong> to a local food bank after the concert</li>
+                    <li><strong>Before the show (~15 min):</strong> Set up the donation boxes and sign</li>
+                    <li><strong>During the show:</strong> Enjoy the concert!</li>
+                    <li><strong>After the show:</strong> Collect the donated items, weigh them (we'll have a scale), and deliver to a local food bank</li>
                 </ul>
 
-                <h3>What to Bring:</h3>
+                <h3>Please Bring:</h3>
                 <ul>
-                    <li>A vehicle that can transport the donated items</li>
-                    <li>A positive attitude and friendly smile</li>
+                    <li>Boxes or bins to transport the donations (we don't have much room in our touring vehicle!)</li>
+                    <li>A vehicle to deliver items to the food bank</li>
                 </ul>
 
                 <h3>Items We're Collecting:</h3>
