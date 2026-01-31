@@ -29,6 +29,6 @@ services:
 
 databases:
   - name: food-drive-db
-    plan: free
+    plan: basic
     databaseName: fooddrive
     user: fooddrive
