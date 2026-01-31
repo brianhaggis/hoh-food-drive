@@ -245,7 +245,7 @@ function renderShows(shows, showDistances = false) {
         const buttonClass = show.has_volunteer ? 'secured' : 'active';
         const buttonText = show.has_volunteer
             ? 'Volunteer Secured ✓'
-            : 'Volunteer for This Show';
+            : 'Volunteer & Get Free Tickets';
 
         const distanceText = showDistances && show.distance !== undefined
             ? `<div class="show-distance">${Math.round(show.distance)} miles away</div>`

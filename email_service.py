@@ -64,20 +64,22 @@ def send_volunteer_confirmation(volunteer_email, volunteer_name, show):
                     <strong>Date:</strong> {show_date}
                 </div>
 
-                <h3>What to Expect:</h3>
+                <h3>What You'll Get:</h3>
                 <ul>
-                    <li><strong>Arrive 30 minutes early</strong> to help set up the collection station</li>
-                    <li><strong>Greet attendees</strong> and encourage food donations</li>
-                    <li><strong>Help organize</strong> collected items during the show</li>
-                    <li><strong>Assist with breakdown</strong> after the event</li>
-                    <li><strong>Total time commitment:</strong> approximately 3-4 hours</li>
+                    <li><strong>Two free tickets</strong> to the show</li>
+                    <li>The satisfaction of making a real difference in your community</li>
+                </ul>
+
+                <h3>What You'll Do:</h3>
+                <ul>
+                    <li><strong>Collect food donations</strong> from attendees during the show</li>
+                    <li><strong>Deliver the collected items</strong> to a local food bank after the concert</li>
                 </ul>
 
                 <h3>What to Bring:</h3>
                 <ul>
-                    <li>Comfortable shoes for standing</li>
+                    <li>A vehicle that can transport the donated items</li>
                     <li>A positive attitude and friendly smile</li>
-                    <li>Water bottle (we'll have snacks!)</li>
                 </ul>
 
                 <h3>Items We're Collecting:</h3>
