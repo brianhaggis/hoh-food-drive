@@ -50,6 +50,22 @@ def create_app():
     with app.app_context():
         db.create_all()
 
+        # Run migrations for new columns (SQLAlchemy doesn't auto-add columns)
+        try:
+            from sqlalchemy import text, inspect
+            inspector = inspect(db.engine)
+            columns = [col['name'] for col in inspector.get_columns('shows')]
+
+            with db.engine.connect() as conn:
+                if 'excluded' not in columns:
+                    conn.execute(text('ALTER TABLE shows ADD COLUMN excluded BOOLEAN DEFAULT FALSE'))
+                    conn.commit()
+                if 'exclude_reason' not in columns:
+                    conn.execute(text('ALTER TABLE shows ADD COLUMN exclude_reason VARCHAR(200)'))
+                    conn.commit()
+        except Exception as e:
+            app.logger.warning(f"Migration check failed (may be OK): {e}")
+
         # Initialize impact stats if not exists
         if not ImpactStats.query.first():
             stats = ImpactStats(
