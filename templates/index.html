@@ -29,6 +29,7 @@
                 <a href="#map">Shows</a>
                 <a href="#impact">Impact</a>
                 <a href="#music">The Band</a>
+                <a href="/admin" class="nav-admin">Admin</a>
             </div>
         </div>
     </nav>
@@ -105,6 +106,13 @@
         <div class="container">
             <h2>Upcoming Shows</h2>
             <p class="section-subtitle">Green markers need volunteers. Red hearts have volunteers secured. Click a show to sign up!</p>
+
+            <!-- Search Bar -->
+            <div class="show-search">
+                <input type="text" id="location-search" placeholder="Enter city, venue, or zip code to find shows near you...">
+                <button id="search-btn" onclick="searchShows()">Search</button>
+                <button id="clear-search-btn" onclick="clearSearch()" style="display: none;">Show All</button>
+            </div>
 
             <div class="map-legend">
                 <div class="legend-item">

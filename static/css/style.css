@@ -135,6 +135,19 @@ img {
     width: 100%;
 }
 
+.nav-admin {
+    font-size: 0.8rem;
+    opacity: 0.5;
+}
+
+.nav-admin:hover {
+    opacity: 1;
+}
+
+.nav-admin::after {
+    display: none !important;
+}
+
 /* Hero Section */
 .hero {
     position: relative;
@@ -320,6 +333,64 @@ img {
     margin-bottom: 30px;
 }
 
+/* Show Search */
+.show-search {
+    display: flex;
+    gap: 10px;
+    max-width: 600px;
+    margin: 0 auto 30px;
+}
+
+.show-search input {
+    flex: 1;
+    padding: 14px 20px;
+    border: 2px solid #e0e0e0;
+    border-radius: var(--radius-md);
+    font-size: 1rem;
+    font-family: var(--font-body);
+    transition: var(--transition);
+}
+
+.show-search input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.show-search button {
+    padding: 14px 24px;
+    background: var(--color-primary);
+    color: var(--color-white);
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
+}
+
+.show-search button:hover {
+    background: var(--color-primary-dark);
+}
+
+#clear-search-btn {
+    background: var(--color-text-light);
+}
+
+#clear-search-btn:hover {
+    background: var(--color-text);
+}
+
+.search-results-info {
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 12px 20px;
+    background: var(--color-bg-alt);
+    border-radius: var(--radius-md);
+    color: var(--color-primary);
+    font-weight: 500;
+}
+
 .map-legend {
     display: flex;
     justify-content: center;
@@ -423,6 +494,17 @@ img {
 
 .show-card.needs-volunteer {
     border-left: 4px solid var(--color-success);
+}
+
+.show-distance {
+    display: inline-block;
+    background: var(--color-primary);
+    color: var(--color-white);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 12px;
 }
 
 .show-date {
@@ -826,6 +908,14 @@ img {
 @media (max-width: 768px) {
     .nav-links {
         display: none;
+    }
+
+    .show-search {
+        flex-direction: column;
+    }
+
+    .show-search button {
+        width: 100%;
     }
 
     .hero h1 {
