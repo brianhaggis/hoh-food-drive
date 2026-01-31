@@ -24,5 +24,9 @@ class Config:
     RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
     ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'houseofhamill@gmail.com')
 
+    # Admin credentials
+    ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
+    ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '')
+
     # Artist name for BandsInTown API
     ARTIST_NAME = 'House of Hamill'

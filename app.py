@@ -1,5 +1,6 @@
 import os
-from flask import Flask, render_template, request, jsonify
+from functools import wraps
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
 from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -8,6 +9,16 @@ from models import db, Show, Volunteer, ImpactStats
 from bandsintown import sync_shows
 from email_service import send_volunteer_confirmation, send_admin_notification
 from pantry_service import get_recommended_pantries, format_pantries_for_display
+
+
+def admin_required(f):
+    """Decorator to require admin login."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('admin_logged_in'):
+            return redirect(url_for('admin_login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 def create_app():
@@ -59,8 +70,11 @@ def index():
 
 @app.route('/api/shows')
 def get_shows():
-    """Get all upcoming shows."""
-    shows = Show.query.filter(Show.date >= datetime.utcnow()).order_by(Show.date).all()
+    """Get all upcoming shows (excludes hidden shows)."""
+    shows = Show.query.filter(
+        Show.date >= datetime.utcnow(),
+        Show.excluded == False
+    ).order_by(Show.date).all()
     return jsonify([show.to_dict() for show in shows])
 
 
@@ -180,6 +194,96 @@ def get_show_pantries(show_id):
             db.session.commit()
 
     return jsonify(show.get_pantries())
+
+
+# ============ ADMIN ROUTES ============
+
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    """Admin login page."""
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+        # Check credentials against env vars
+        if (username == os.environ.get('ADMIN_USERNAME', 'admin') and
+            password == os.environ.get('ADMIN_PASSWORD', '')):
+            session['admin_logged_in'] = True
+            return redirect(url_for('admin_dashboard'))
+        else:
+            flash('Invalid credentials', 'error')
+
+    return render_template('admin/login.html')
+
+
+@app.route('/admin/logout')
+def admin_logout():
+    """Admin logout."""
+    session.pop('admin_logged_in', None)
+    return redirect(url_for('index'))
+
+
+@app.route('/admin')
+@admin_required
+def admin_dashboard():
+    """Admin dashboard."""
+    shows = Show.query.filter(Show.date >= datetime.utcnow()).order_by(Show.date).all()
+    stats = ImpactStats.query.first()
+    volunteers = Volunteer.query.order_by(Volunteer.signup_date.desc()).limit(10).all()
+    return render_template('admin/dashboard.html', shows=shows, stats=stats, volunteers=volunteers)
+
+
+@app.route('/admin/shows/<int:show_id>/toggle', methods=['POST'])
+@admin_required
+def toggle_show(show_id):
+    """Toggle show excluded status."""
+    show = Show.query.get_or_404(show_id)
+    show.excluded = not show.excluded
+    show.exclude_reason = request.form.get('reason', '') if show.excluded else None
+    db.session.commit()
+    return jsonify({'success': True, 'excluded': show.excluded})
+
+
+@app.route('/admin/stats', methods=['POST'])
+@admin_required
+def update_stats():
+    """Update impact statistics."""
+    stats = ImpactStats.query.first()
+    if not stats:
+        stats = ImpactStats()
+        db.session.add(stats)
+
+    stats.pounds_collected = int(request.form.get('pounds_collected', 0))
+    stats.meals_provided = int(request.form.get('meals_provided', 0))
+    stats.shows_participated = int(request.form.get('shows_participated', 0))
+    db.session.commit()
+
+    flash('Stats updated successfully', 'success')
+    return redirect(url_for('admin_dashboard'))
+
+
+@app.route('/admin/sync', methods=['POST'])
+@admin_required
+def admin_sync():
+    """Sync shows and pantries from admin."""
+    action = request.form.get('action')
+
+    if action == 'shows':
+        count = sync_shows(db, Show, app.config['ARTIST_NAME'], app.config['BANDSINTOWN_API_KEY'])
+        flash(f'Synced {count} new shows from BandsInTown', 'success')
+    elif action == 'pantries':
+        shows = Show.query.filter(Show.pantry_data.is_(None), Show.state.isnot(None)).all()
+        updated = 0
+        for show in shows:
+            if show.city and show.state:
+                pantries = get_recommended_pantries(show.city, show.state, count=3)
+                if pantries:
+                    show.set_pantries(format_pantries_for_display(pantries))
+                    updated += 1
+        db.session.commit()
+        flash(f'Synced pantries for {updated} shows', 'success')
+
+    return redirect(url_for('admin_dashboard'))
 
 
 if __name__ == '__main__':

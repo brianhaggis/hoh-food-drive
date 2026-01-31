@@ -638,6 +638,57 @@ img {
     margin-bottom: 5px;
 }
 
+/* Modal Pantries */
+.modal-pantries {
+    background: #fff8f0;
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    margin-bottom: 25px;
+}
+
+.modal-pantries h4 {
+    color: var(--color-primary);
+    font-size: 1rem;
+    margin-bottom: 15px;
+}
+
+.modal-pantries ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.modal-pantries li {
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(139, 69, 19, 0.1);
+}
+
+.modal-pantries li:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.modal-pantries li strong {
+    color: var(--color-text);
+    display: block;
+    margin-bottom: 4px;
+}
+
+.pantry-address,
+.pantry-phone,
+.pantry-hours {
+    font-size: 0.9rem;
+    color: var(--color-text-light);
+    display: block;
+    margin-top: 2px;
+}
+
+.pantry-hours {
+    color: var(--color-primary);
+    font-style: italic;
+}
+
 .submit-btn {
     width: 100%;
     padding: 16px;

@@ -18,6 +18,8 @@ class Show(db.Model):
     latitude = db.Column(db.Float, nullable=True)
     longitude = db.Column(db.Float, nullable=True)
     has_volunteer = db.Column(db.Boolean, default=False)
+    excluded = db.Column(db.Boolean, default=False)  # Exclude from food drive (festivals, opening slots)
+    exclude_reason = db.Column(db.String(200), nullable=True)  # Why excluded
     ticket_url = db.Column(db.String(500), nullable=True)
     pantry_data = db.Column(db.Text, nullable=True)  # JSON string of nearby food pantries
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -38,8 +40,8 @@ class Show(db.Model):
         """Set pantry data from list."""
         self.pantry_data = json.dumps(pantries) if pantries else None
 
-    def to_dict(self):
-        return {
+    def to_dict(self, include_admin=False):
+        data = {
             'id': self.id,
             'bandsintown_id': self.bandsintown_id,
             'venue': self.venue,
@@ -53,6 +55,10 @@ class Show(db.Model):
             'ticket_url': self.ticket_url,
             'pantries': self.get_pantries()
         }
+        if include_admin:
+            data['excluded'] = self.excluded
+            data['exclude_reason'] = self.exclude_reason
+        return data
 
 
 class Volunteer(db.Model):

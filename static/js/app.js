@@ -157,26 +157,8 @@ function renderMapMarkers(shows) {
             .filter(Boolean)
             .join(', ');
 
-        // Format pantries for popup
-        let pantriesHtml = '';
-        if (show.pantries && show.pantries.length > 0) {
-            pantriesHtml = `
-                <div style="margin-top: 10px; text-align: left; border-top: 1px solid #eee; padding-top: 10px;">
-                    <strong style="font-size: 11px; color: #666;">DONATION PARTNERS:</strong>
-                    <ul style="margin: 5px 0; padding-left: 15px; font-size: 12px;">
-                        ${show.pantries.slice(0, 2).map(p => `
-                            <li style="margin-bottom: 5px;">
-                                <strong>${escapeHtml(p.name)}</strong>
-                                ${p.hours ? `<br><em style="color: #888; font-size: 11px;">${escapeHtml(p.hours)}</em>` : ''}
-                            </li>
-                        `).join('')}
-                    </ul>
-                </div>
-            `;
-        }
-
         const popupContent = `
-            <div style="text-align: center; min-width: 200px; max-width: 280px;">
+            <div style="text-align: center; min-width: 180px;">
                 <strong style="font-size: 14px;">${escapeHtml(show.venue)}</strong><br>
                 <span style="color: #666;">${escapeHtml(location)}</span><br>
                 <span style="color: #8B4513; font-weight: 500;">${formattedDate}</span><br>
@@ -197,7 +179,6 @@ function renderMapMarkers(shows) {
                         >Volunteer</button>`
                     }
                 </div>
-                ${pantriesHtml}
             </div>
         `;
 
@@ -233,6 +214,29 @@ function openVolunteerModal(showId) {
         <strong>${escapeHtml(show.venue)}</strong><br>
         ${escapeHtml(location)} • ${formattedDate}
     `;
+
+    // Update pantry info in modal
+    const pantryContainer = document.getElementById('modal-pantries');
+    if (pantryContainer) {
+        if (show.pantries && show.pantries.length > 0) {
+            pantryContainer.innerHTML = `
+                <h4>Local Food Banks for This Show:</h4>
+                <ul>
+                    ${show.pantries.map(p => `
+                        <li>
+                            <strong>${escapeHtml(p.name)}</strong>
+                            ${p.address ? `<br><span class="pantry-address">${escapeHtml(p.address)}</span>` : ''}
+                            ${p.phone ? `<br><span class="pantry-phone">${escapeHtml(p.phone)}</span>` : ''}
+                            ${p.hours ? `<br><em class="pantry-hours">${escapeHtml(p.hours)}</em>` : ''}
+                        </li>
+                    `).join('')}
+                </ul>
+            `;
+            pantryContainer.style.display = 'block';
+        } else {
+            pantryContainer.style.display = 'none';
+        }
+    }
 
     // Reset form
     document.getElementById('volunteer-form').reset();
