@@ -1,6 +1,8 @@
 import os
+import csv
+import io
 from functools import wraps
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash, make_response
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash, make_response, Response
 from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -218,17 +220,23 @@ def get_stats():
     stats = ImpactStats.query.first()
     volunteer_count = Volunteer.query.count()
 
+    # Auto-calculate shows participated (past non-excluded shows)
+    shows_participated = Show.query.filter(
+        Show.date < datetime.utcnow(),
+        Show.excluded == False
+    ).count()
+
     if stats:
         return jsonify({
             'pounds_collected': stats.pounds_collected,
             'meals_provided': stats.meals_provided,
-            'shows_participated': stats.shows_participated,
+            'shows_participated': shows_participated,
             'volunteers': volunteer_count
         })
     return jsonify({
         'pounds_collected': 0,
         'meals_provided': 0,
-        'shows_participated': 0,
+        'shows_participated': shows_participated,
         'volunteers': 0
     })
 
@@ -367,6 +375,82 @@ def admin_sync():
         flash(f'Synced pantries for {updated} shows', 'success')
 
     return redirect(url_for('admin_dashboard'))
+
+
+@app.route('/admin/volunteers/csv')
+@admin_required
+def download_volunteers_csv():
+    """Download all volunteers as CSV."""
+    volunteers = Volunteer.query.join(Show).order_by(Volunteer.signup_date.desc()).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # Header row
+    writer.writerow(['Name', 'Email', 'Phone', 'Show Date', 'Venue', 'City', 'State', 'Signup Date'])
+
+    # Data rows
+    for v in volunteers:
+        writer.writerow([
+            v.name,
+            v.email,
+            v.phone,
+            v.show.date.strftime('%Y-%m-%d') if v.show else '',
+            v.show.venue if v.show else '',
+            v.show.city if v.show else '',
+            v.show.state if v.show else '',
+            v.signup_date.strftime('%Y-%m-%d %H:%M') if v.signup_date else ''
+        ])
+
+    output.seek(0)
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=volunteers.csv'}
+    )
+
+
+@app.route('/admin/shows/<int:show_id>/pantries', methods=['GET'])
+@admin_required
+def get_show_pantries_admin(show_id):
+    """Get pantries for a show (admin)."""
+    show = Show.query.get_or_404(show_id)
+    return jsonify({
+        'show_id': show.id,
+        'venue': show.venue,
+        'city': show.city,
+        'state': show.state,
+        'pantries': show.get_pantries()
+    })
+
+
+@app.route('/admin/shows/<int:show_id>/pantries', methods=['POST'])
+@admin_required
+def update_show_pantries(show_id):
+    """Update pantries for a show."""
+    show = Show.query.get_or_404(show_id)
+    data = request.get_json()
+
+    if 'pantries' in data:
+        show.set_pantries(data['pantries'])
+        db.session.commit()
+
+    return jsonify({'success': True, 'pantries': show.get_pantries()})
+
+
+@app.route('/admin/shows/<int:show_id>/pantries/search', methods=['POST'])
+@admin_required
+def search_pantries_for_show(show_id):
+    """Search for pantries near a show."""
+    show = Show.query.get_or_404(show_id)
+
+    if not show.city or not show.state:
+        return jsonify({'error': 'Show has no city/state info'}), 400
+
+    pantries = get_recommended_pantries(show.city, show.state, count=10)
+    formatted = format_pantries_for_display(pantries) if pantries else []
+
+    return jsonify({'pantries': formatted})
 
 
 if __name__ == '__main__':

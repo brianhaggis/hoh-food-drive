@@ -130,6 +130,110 @@
             color: #666;
             font-style: italic;
         }
+        .btn-group {
+            display: flex;
+            gap: 5px;
+        }
+        .btn-info {
+            background: #0288d1;
+        }
+        .btn-info:hover { background: #0277bd; }
+        .stat-display {
+            padding: 10px;
+            background: #e8f5e9;
+            border-radius: 6px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #2e7d32;
+            text-align: center;
+        }
+        .stat-display small {
+            display: block;
+            font-size: 11px;
+            font-weight: normal;
+            color: #666;
+        }
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-header h3 {
+            color: #2e7d32;
+            margin: 0;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+        .pantry-item {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .pantry-item input, .pantry-item textarea {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .pantry-item label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 600;
+        }
+        .pantry-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .search-results {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        .search-result-item {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+        .search-result-item:hover {
+            background: #e8f5e9;
+        }
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
         @media (max-width: 768px) {
             .show-table { font-size: 14px; }
             .show-table th, .show-table td { padding: 8px; }
@@ -169,7 +273,11 @@
                     </div>
                     <div class="stat-input">
                         <label>Shows Participated</label>
-                        <input type="number" name="shows_participated" value="{{ stats.shows_participated if stats else 0 }}">
+                        <div class="stat-display">
+                            <span id="shows-participated">--</span>
+                            <small>Auto-calculated from past shows</small>
+                        </div>
+                        <input type="hidden" name="shows_participated" value="0">
                     </div>
                 </div>
                 <button type="submit" class="btn">Update Stats</button>
@@ -228,10 +336,15 @@
                             {% endif %}
                         </td>
                         <td>
-                            <button class="btn btn-small {% if show.excluded %}btn-secondary{% endif %}"
-                                    onclick="toggleShow({{ show.id }}, {{ 'true' if show.excluded else 'false' }})">
-                                {{ 'Include' if show.excluded else 'Exclude' }}
-                            </button>
+                            <div class="btn-group">
+                                <button class="btn btn-small {% if show.excluded %}btn-secondary{% endif %}"
+                                        onclick="toggleShow({{ show.id }}, {{ 'true' if show.excluded else 'false' }})">
+                                    {{ 'Include' if show.excluded else 'Exclude' }}
+                                </button>
+                                <button class="btn btn-small btn-info" onclick="openPantryModal({{ show.id }})">
+                                    Pantries
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -242,6 +355,9 @@
         <!-- Recent Volunteers -->
         <div class="card">
             <h2>Recent Volunteers</h2>
+            <div style="margin-bottom: 15px;">
+                <a href="{{ url_for('download_volunteers_csv') }}" class="btn btn-secondary">Download All as CSV</a>
+            </div>
             {% if volunteers %}
             <table class="show-table">
                 <thead>
@@ -269,12 +385,47 @@
         </div>
     </div>
 
+    <!-- Pantry Management Modal -->
+    <div id="pantry-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Manage Food Pantries</h3>
+                <button class="modal-close" onclick="closePantryModal()">&times;</button>
+            </div>
+            <p id="pantry-show-info" style="color: #666; margin-bottom: 20px;"></p>
+
+            <div id="pantry-list"></div>
+
+            <div class="pantry-actions">
+                <button class="btn" onclick="addPantryField()">+ Add Pantry Manually</button>
+                <button class="btn btn-info" onclick="searchPantries()">Search Nearby Pantries</button>
+            </div>
+
+            <div id="search-results" class="search-results" style="display: none;"></div>
+
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="btn btn-secondary" onclick="closePantryModal()">Cancel</button>
+                <button class="btn" onclick="savePantries()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        let currentShowId = null;
+        let currentPantries = [];
+
+        // Fetch shows participated count
+        fetch('/api/stats')
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('shows-participated').textContent = data.shows_participated;
+            });
+
         async function toggleShow(showId, currentlyExcluded) {
             let reason = '';
             if (!currentlyExcluded) {
                 reason = prompt('Reason for excluding (e.g., "Festival - no table space", "Opening slot"):');
-                if (reason === null) return; // Cancelled
+                if (reason === null) return;
             }
 
             const formData = new FormData();
@@ -289,6 +440,131 @@
                 location.reload();
             } else {
                 alert('Error updating show');
+            }
+        }
+
+        async function openPantryModal(showId) {
+            currentShowId = showId;
+            const response = await fetch(`/admin/shows/${showId}/pantries`);
+            const data = await response.json();
+
+            document.getElementById('pantry-show-info').textContent =
+                `${data.venue} - ${data.city}, ${data.state}`;
+
+            currentPantries = data.pantries || [];
+            renderPantryList();
+
+            document.getElementById('pantry-modal').classList.add('active');
+            document.getElementById('search-results').style.display = 'none';
+        }
+
+        function closePantryModal() {
+            document.getElementById('pantry-modal').classList.remove('active');
+            currentShowId = null;
+            currentPantries = [];
+        }
+
+        function renderPantryList() {
+            const container = document.getElementById('pantry-list');
+
+            if (currentPantries.length === 0) {
+                container.innerHTML = '<p style="color: #666;">No pantries added yet.</p>';
+                return;
+            }
+
+            container.innerHTML = currentPantries.map((p, i) => `
+                <div class="pantry-item">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div style="flex: 1;">
+                            <label>Name</label>
+                            <input type="text" value="${escapeHtml(p.name || '')}" onchange="updatePantry(${i}, 'name', this.value)">
+                        </div>
+                        <button class="btn btn-small btn-secondary" style="margin-left: 10px;" onclick="removePantry(${i})">Remove</button>
+                    </div>
+                    <label>Address</label>
+                    <input type="text" value="${escapeHtml(p.address || '')}" onchange="updatePantry(${i}, 'address', this.value)">
+                    <label>Phone</label>
+                    <input type="text" value="${escapeHtml(p.phone || '')}" onchange="updatePantry(${i}, 'phone', this.value)">
+                    <label>Hours</label>
+                    <input type="text" value="${escapeHtml(p.hours || '')}" onchange="updatePantry(${i}, 'hours', this.value)">
+                </div>
+            `).join('');
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function updatePantry(index, field, value) {
+            currentPantries[index][field] = value;
+        }
+
+        function removePantry(index) {
+            currentPantries.splice(index, 1);
+            renderPantryList();
+        }
+
+        function addPantryField() {
+            currentPantries.push({ name: '', address: '', phone: '', hours: '' });
+            renderPantryList();
+        }
+
+        async function searchPantries() {
+            const resultsContainer = document.getElementById('search-results');
+            resultsContainer.innerHTML = '<p style="padding: 15px;">Searching...</p>';
+            resultsContainer.style.display = 'block';
+
+            const response = await fetch(`/admin/shows/${currentShowId}/pantries/search`, {
+                method: 'POST'
+            });
+            const data = await response.json();
+
+            if (data.error) {
+                resultsContainer.innerHTML = `<p style="padding: 15px; color: #c00;">${data.error}</p>`;
+                return;
+            }
+
+            if (!data.pantries || data.pantries.length === 0) {
+                resultsContainer.innerHTML = '<p style="padding: 15px;">No pantries found nearby.</p>';
+                return;
+            }
+
+            resultsContainer.innerHTML = data.pantries.map((p, i) => `
+                <div class="search-result-item" onclick="selectSearchResult(${i})">
+                    <strong>${escapeHtml(p.name)}</strong><br>
+                    <span style="color: #666; font-size: 13px;">${escapeHtml(p.address || 'No address')}</span>
+                </div>
+            `).join('');
+
+            // Store search results for selection
+            window.searchResults = data.pantries;
+        }
+
+        function selectSearchResult(index) {
+            const pantry = window.searchResults[index];
+            currentPantries.push(pantry);
+            renderPantryList();
+            document.getElementById('search-results').style.display = 'none';
+        }
+
+        async function savePantries() {
+            // Filter out empty pantries
+            const validPantries = currentPantries.filter(p => p.name && p.name.trim());
+
+            const response = await fetch(`/admin/shows/${currentShowId}/pantries`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pantries: validPantries })
+            });
+
+            if (response.ok) {
+                alert('Pantries saved!');
+                closePantryModal();
+            } else {
+                alert('Error saving pantries');
             }
         }
     </script>
