@@ -1,6 +1,6 @@
 import os
 from functools import wraps
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash, make_response
 from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -9,6 +9,26 @@ from models import db, Show, Volunteer, ImpactStats
 from bandsintown import sync_shows
 from email_service import send_volunteer_confirmation, send_admin_notification
 from pantry_service import get_recommended_pantries, format_pantries_for_display
+
+# Site password (set to None or empty string to disable)
+SITE_PASSWORD = os.environ.get('SITE_PASSWORD', 'icecream')
+
+
+def check_site_password():
+    """Check if site password is required and valid."""
+    if not SITE_PASSWORD:
+        return True  # No password required
+    return request.cookies.get('site_access') == 'granted'
+
+
+def site_password_required(f):
+    """Decorator to require site password."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not check_site_password():
+            return redirect(url_for('site_password_page'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 def admin_required(f):
@@ -62,7 +82,54 @@ scheduler.add_job(func=scheduled_sync, trigger="cron", hour=6, minute=0)
 scheduler.start()
 
 
+# Password protection for all routes
+@app.before_request
+def check_password_protection():
+    """Check site password before each request."""
+    if not SITE_PASSWORD:
+        return None  # No password required
+
+    # Allow these paths without password
+    allowed_paths = ['/unlock', '/static/', '/admin']
+    if any(request.path.startswith(p) for p in allowed_paths):
+        return None
+
+    if not check_site_password():
+        # For API routes, return 401
+        if request.path.startswith('/api/'):
+            return jsonify({'error': 'Unauthorized'}), 401
+        # For regular routes, redirect to unlock page
+        return redirect(url_for('site_password_page'))
+
+    return None
+
+
+# Serve robots.txt from root
+@app.route('/robots.txt')
+def robots():
+    return app.send_static_file('robots.txt')
+
+
 # Routes
+@app.route('/unlock', methods=['GET', 'POST'])
+def site_password_page():
+    """Site password page."""
+    if not SITE_PASSWORD:
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        password = request.form.get('password', '')
+        if password == SITE_PASSWORD:
+            response = make_response(redirect(url_for('index')))
+            # Cookie lasts 30 days
+            response.set_cookie('site_access', 'granted', max_age=30*24*60*60, httponly=True, samesite='Lax')
+            return response
+        else:
+            return render_template('unlock.html', error='Incorrect password')
+
+    return render_template('unlock.html')
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
