@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>House of Hamill Food Drive | Making Music, Fighting Hunger</title>
+    <meta name="description" content="Join House of Hamill in fighting hunger. Volunteer at our shows to help collect food donations for local communities.">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="https://www.houseofhamill.com" class="nav-logo" target="_blank">
+                <span class="logo-text">House of Hamill</span>
+            </a>
+            <div class="nav-links">
+                <a href="#about">About</a>
+                <a href="#map">Shows</a>
+                <a href="#impact">Impact</a>
+                <a href="#music">Music</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <h1>Making Music.<br>Fighting Hunger.</h1>
+            <p class="hero-subtitle">Join House of Hamill on a mission to end food insecurity, one show at a time.</p>
+            <a href="#map" class="cta-button">Find a Show & Volunteer</a>
+        </div>
+    </header>
+
+    <!-- About Section -->
+    <section id="about" class="about-section">
+        <div class="container">
+            <div class="about-content">
+                <div class="about-text">
+                    <h2>About House of Hamill</h2>
+                    <p>House of Hamill owes its existence — almost entirely — to a series of cancelled flights. The trio formed when Rose Baldino and Brian Buchanan (formerly of Canadian Celtic rock band Enter the Haggis) first performed together at the 2014 Folk Alliance International conference after bandmates couldn't fly in due to weather. Years later, when hired musicians' flights were cancelled for a Colorado festival, local bassist Caroline Browning stepped in — and the chemistry was undeniable.</p>
+                    <p>Now based in Pennsylvania, House of Hamill has become a fixture on U.S. festival stages. Their original composition "Banks of the Brandywine" won the Grand Prize in the 2024 John Lennon Songwriting Contest (Folk category), and their album "Wildfire" hit #1 on the FAI Folk Charts.</p>
+                    <h3 style="margin-top: 25px;">Our Food Drive Mission</h3>
+                    <p>At every show, we collect non-perishable food items for local food banks and pantries. With your help as a volunteer, we can ensure every performance makes a meaningful impact on families facing food insecurity.</p>
+                    <div class="mission-highlights">
+                        <div class="highlight-item">
+                            <span class="highlight-icon">🎵</span>
+                            <span>Award-Winning Music</span>
+                        </div>
+                        <div class="highlight-item">
+                            <span class="highlight-icon">🤝</span>
+                            <span>Community Driven</span>
+                        </div>
+                        <div class="highlight-item">
+                            <span class="highlight-icon">❤️</span>
+                            <span>100% Local Impact</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="about-image">
+                    <img src="https://d10j3mvrs1suex.cloudfront.net/s:bzglfiles/u/169024/f6179d0bd823113a2163f60502ad0ac7f2fc636b/original/house-of-hamill-trio-2-credit-sarah-snyder.jpeg" alt="House of Hamill - Rose Baldino, Brian Buchanan, and Caroline Browning. Photo by Sarah Snyder" loading="lazy">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Impact Stats Section -->
+    <section id="impact" class="impact-section">
+        <div class="container">
+            <h2>Our Impact</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-number" id="stat-pounds">2,500+</span>
+                    <span class="stat-label">Pounds Collected</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="stat-meals">2,000+</span>
+                    <span class="stat-label">Meals Provided</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="stat-shows">15+</span>
+                    <span class="stat-label">Shows Participated</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="stat-volunteers">0</span>
+                    <span class="stat-label">Volunteers</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Map Section -->
+    <section id="map" class="map-section">
+        <div class="container">
+            <h2>Upcoming Shows</h2>
+            <p class="section-subtitle">Green markers need volunteers. Red hearts have volunteers secured. Click a show to sign up!</p>
+
+            <div class="map-legend">
+                <div class="legend-item">
+                    <span class="legend-dot needs-volunteer"></span>
+                    <span>Needs Volunteer</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-heart">❤️</span>
+                    <span>Volunteer Secured</span>
+                </div>
+            </div>
+
+            <div id="shows-map"></div>
+        </div>
+    </section>
+
+    <!-- Shows List Section -->
+    <section class="shows-section">
+        <div class="container">
+            <h2>Show Schedule</h2>
+            <div id="shows-list" class="shows-grid">
+                <!-- Shows populated by JavaScript -->
+                <div class="loading-spinner">Loading shows...</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Music Section -->
+    <section id="music" class="music-section">
+        <div class="container">
+            <h2>Listen to House of Hamill</h2>
+            <p class="section-subtitle">Discover the Celtic-Americana sound that brings communities together</p>
+            <div class="spotify-embed">
+                <iframe style="border-radius:12px" src="https://open.spotify.com/embed/artist/0tQvB7Tf6Hd2RzlJM4eQal?utm_source=generator&theme=0" width="100%" height="352" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+            </div>
+        </div>
+    </section>
+
+    <!-- Volunteer Modal -->
+    <div id="volunteer-modal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+            <div class="modal-header">
+                <h2>Volunteer for This Show</h2>
+                <p id="modal-show-info"></p>
+            </div>
+            <form id="volunteer-form" onsubmit="submitVolunteerForm(event)">
+                <input type="hidden" id="show-id" name="show_id">
+
+                <div class="form-group">
+                    <label for="volunteer-name">Full Name *</label>
+                    <input type="text" id="volunteer-name" name="name" required placeholder="Your full name">
+                </div>
+
+                <div class="form-group">
+                    <label for="volunteer-email">Email Address *</label>
+                    <input type="email" id="volunteer-email" name="email" required placeholder="your@email.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="volunteer-phone">Phone Number *</label>
+                    <input type="tel" id="volunteer-phone" name="phone" required placeholder="(555) 123-4567">
+                </div>
+
+                <div class="form-info">
+                    <p><strong>What to expect:</strong></p>
+                    <ul>
+                        <li>Arrive 30 minutes before the show</li>
+                        <li>Help collect and organize donations</li>
+                        <li>Greet attendees with a smile</li>
+                        <li>Time commitment: ~3-4 hours</li>
+                    </ul>
+                </div>
+
+                <button type="submit" class="submit-btn">Sign Up to Volunteer</button>
+            </form>
+            <div id="form-success" class="form-success" style="display: none;">
+                <div class="success-icon">✓</div>
+                <h3>Thank You!</h3>
+                <p>You're signed up to volunteer. Check your email for confirmation and details.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <h3>House of Hamill</h3>
+                    <p>Rose Baldino, Brian Buchanan & Caroline Browning — award-winning Celtic-Americana, fighting hunger one show at a time.</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Connect</h4>
+                    <a href="https://www.houseofhamill.com" target="_blank">Official Website</a>
+                    <a href="https://www.houseofhamill.com/presskit" target="_blank">Press Kit</a>
+                    <a href="mailto:houseofhamill@gmail.com">Contact</a>
+                </div>
+                <div class="footer-social">
+                    <h4>Follow Us</h4>
+                    <div class="social-links">
+                        <a href="https://www.facebook.com/houseofhamill" target="_blank" aria-label="Facebook">FB</a>
+                        <a href="https://www.instagram.com/houseofhamill" target="_blank" aria-label="Instagram">IG</a>
+                        <a href="https://open.spotify.com/artist/0tQvB7Tf6Hd2RzlJM4eQal" target="_blank" aria-label="Spotify">Spotify</a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 House of Hamill Food Drive. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
