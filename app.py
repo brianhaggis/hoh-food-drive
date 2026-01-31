@@ -90,7 +90,7 @@ def check_password_protection():
         return None  # No password required
 
     # Allow these paths without password
-    allowed_paths = ['/unlock', '/static/', '/admin']
+    allowed_paths = ['/unlock', '/static/', '/admin', '/robots.txt', '/api/sync-shows', '/api/sync-pantries']
     if any(request.path.startswith(p) for p in allowed_paths):
         return None
 
