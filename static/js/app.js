@@ -367,29 +367,6 @@ function openVolunteerModal(showId) {
         ${escapeHtml(location)} • ${formattedDate}
     `;
 
-    // Update pantry info in modal
-    const pantryContainer = document.getElementById('modal-pantries');
-    if (pantryContainer) {
-        if (show.pantries && show.pantries.length > 0) {
-            pantryContainer.innerHTML = `
-                <h4>Local Food Banks for This Show:</h4>
-                <ul>
-                    ${show.pantries.map(p => `
-                        <li>
-                            <strong>${escapeHtml(p.name)}</strong>
-                            ${p.address ? `<br><span class="pantry-address">${escapeHtml(p.address)}</span>` : ''}
-                            ${p.phone ? `<br><span class="pantry-phone">${escapeHtml(p.phone)}</span>` : ''}
-                            ${p.hours ? `<br><em class="pantry-hours">${escapeHtml(p.hours)}</em>` : ''}
-                        </li>
-                    `).join('')}
-                </ul>
-            `;
-            pantryContainer.style.display = 'block';
-        } else {
-            pantryContainer.style.display = 'none';
-        }
-    }
-
     // Reset form
     document.getElementById('volunteer-form').reset();
     document.getElementById('volunteer-form').style.display = 'block';
