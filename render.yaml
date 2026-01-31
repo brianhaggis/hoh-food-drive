@@ -1,7 +1,7 @@
 services:
   - type: web
-    name: house-of-hamill-food-drive
-    env: python
+    name: hoh-food-drive
+    runtime: python
     plan: starter
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
@@ -18,16 +18,29 @@ services:
         fromDatabase:
           name: food-drive-db
           property: connectionString
+      - key: RENDER_EXTERNAL_URL
+        fromService:
+          type: web
+          name: hoh-food-drive
+          property: url
     autoDeploy: true
+
+  - type: cron
+    name: sync-shows-cron
+    runtime: python
+    schedule: "0 6 * * *"
+    buildCommand: pip install requests
+    startCommand: python -c "import requests, os; requests.post(os.environ['SYNC_URL'])"
+    envVars:
+      - key: SYNC_URL
+        fromService:
+          type: web
+          name: hoh-food-drive
+          property: url
+          path: /api/sync-shows
 
 databases:
   - name: food-drive-db
     plan: starter
     databaseName: fooddrive
     user: fooddrive
-
-# Cron job for daily show sync
-crons:
-  - name: sync-shows
-    schedule: "0 6 * * *"
-    command: "curl -X POST https://house-of-hamill-food-drive.onrender.com/api/sync-shows"
