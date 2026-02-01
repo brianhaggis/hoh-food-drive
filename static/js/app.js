@@ -85,21 +85,28 @@ async function initParallax() {
 function initParallaxScroll() {
     const parallaxImage = document.getElementById('parallax-image');
     const container = document.getElementById('parallax-container');
-
-    if (!parallaxImage || !container) return;
+    const heroOverlay = document.querySelector('.hero-overlay');
 
     function updateParallax() {
-        const rect = container.getBoundingClientRect();
+        const scrollY = window.scrollY;
         const windowHeight = window.innerHeight;
 
-        // Only apply parallax when container is in view
-        if (rect.bottom > 0 && rect.top < windowHeight) {
-            // Calculate scroll progress (-1 to 1, where 0 is centered in viewport)
-            const progress = (rect.top + rect.height / 2 - windowHeight / 2) / windowHeight;
+        // Hero parallax - subtle movement as you scroll down
+        if (heroOverlay && scrollY < windowHeight) {
+            const heroOffset = scrollY * 0.15; // Very subtle 15% rate
+            heroOverlay.style.transform = `translateY(${heroOffset}px)`;
+        }
 
-            // Move image based on scroll (parallax factor of 0.3)
-            const offset = progress * 30; // 30% movement range
-            parallaxImage.style.transform = `translateY(${offset}%)`;
+        // About section parallax
+        if (parallaxImage && container) {
+            const rect = container.getBoundingClientRect();
+
+            // Only apply parallax when container is in view
+            if (rect.bottom > 0 && rect.top < windowHeight) {
+                const progress = (rect.top + rect.height / 2 - windowHeight / 2) / windowHeight;
+                const offset = progress * 30;
+                parallaxImage.style.transform = `translateY(${offset}%)`;
+            }
         }
     }
 

@@ -207,12 +207,14 @@ img {
 
 .hero-overlay {
     position: absolute;
-    top: 0;
+    top: -10%;
     left: 0;
     right: 0;
     bottom: 0;
+    height: 120%;
     background: url('https://d10j3mvrs1suex.cloudfront.net/s:bzglfiles/u/169024/78181b2b43c8913ce383a02de45a631835e8915e/original/house-of-hamill-waterfall-pic-large.jpg') center/cover;
     opacity: 0.12;
+    will-change: transform;
 }
 
 .hero::before {
