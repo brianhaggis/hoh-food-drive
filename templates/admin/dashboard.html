@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard | House of Hamill Food Drive</title>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
-    <!-- Quill rich text editor -->
-    <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -444,7 +442,7 @@
 
             <div style="margin-bottom: 20px;">
                 <label style="font-size: 12px; color: #666; display: block; margin-bottom: 5px; text-transform: uppercase;">Email Body</label>
-                <div id="email-body-editor" style="height: 400px; background: white; border-radius: 0 0 6px 6px;"></div>
+                <textarea id="email-body-editor"></textarea>
             </div>
 
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
@@ -557,8 +555,10 @@
         </div>
     </div>
 
-    <!-- Quill rich text editor -->
-    <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+    <!-- Summernote rich text editor -->
+    <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.js"></script>
 
     <script>
         let currentShowId = null;
@@ -804,68 +804,27 @@
         // Load slideshow images on page load
         loadSlideshowImages();
 
-        // ============ EMAIL TEMPLATE EDITOR (Quill) ============
+        // ============ EMAIL TEMPLATE EDITOR (Summernote) ============
 
-        // Initialize Quill rich text editor
-        const quill = new Quill('#email-body-editor', {
-            theme: 'snow',
-            modules: {
+        // Initialize Summernote rich text editor
+        $(document).ready(function() {
+            $('#email-body-editor').summernote({
+                height: 450,
                 toolbar: [
-                    [{ 'header': [1, 2, 3, false] }],
-                    ['bold', 'italic', 'underline', 'strike'],
-                    [{ 'color': [] }, { 'background': [] }],
-                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                    [{ 'align': [] }],
-                    ['link'],
-                    ['clean']
-                ]
-            },
-            placeholder: 'Compose your email...'
+                    ['style', ['style']],
+                    ['font', ['bold', 'italic', 'underline', 'clear']],
+                    ['color', ['color']],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['insert', ['link']],
+                    ['view', ['codeview', 'fullscreen']]
+                ],
+                callbacks: {
+                    onInit: function() {
+                        loadEmailTemplate();
+                    }
+                }
+            });
         });
-
-        // Extract body content from full HTML email
-        function extractBodyContent(html) {
-            // If it's a full HTML document, extract the content div
-            const match = html.match(/<div class="content">([\s\S]*?)<\/div>\s*<\/div>\s*<\/body>/i);
-            if (match) {
-                return match[1].trim();
-            }
-            // Try to extract just body content
-            const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-            if (bodyMatch) {
-                return bodyMatch[1].trim();
-            }
-            return html;
-        }
-
-        // Wrap content back into full HTML email structure
-        function wrapInEmailTemplate(content) {
-            return `<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body { font-family: 'Georgia', serif; color: #2c2c2c; line-height: 1.6; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #43a047 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-        .content { background: #f1f8e9; padding: 30px; border-radius: 0 0 8px 8px; }
-        .highlight { background: #fff; padding: 20px; border-left: 4px solid #2e7d32; margin: 20px 0; }
-        h1 { margin: 0; font-weight: normal; }
-        .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>Thank You, {volunteer_name}!</h1>
-            <p>You're making a difference with House of Hamill</p>
-        </div>
-        <div class="content">
-${content}
-        </div>
-    </div>
-</body>
-</html>`;
-        }
 
         async function loadEmailTemplate() {
             try {
@@ -874,10 +833,9 @@ ${content}
 
                 document.getElementById('email-subject').value = data.subject || '';
 
-                // Load HTML into Quill (extract body content from full HTML)
+                // Load full HTML into Summernote
                 if (data.body_html) {
-                    const content = extractBodyContent(data.body_html);
-                    quill.root.innerHTML = content;
+                    $('#email-body-editor').summernote('code', data.body_html);
                 }
 
                 if (data.is_default) {
@@ -892,15 +850,12 @@ ${content}
 
         async function saveEmailTemplate() {
             const subject = document.getElementById('email-subject').value.trim();
-            const contentHtml = quill.root.innerHTML.trim();
+            const bodyHtml = $('#email-body-editor').summernote('code');
 
-            if (!subject || !contentHtml || contentHtml === '<p><br></p>') {
+            if (!subject || !bodyHtml) {
                 alert('Please fill in both subject and body');
                 return;
             }
-
-            // Wrap content in full email template
-            const bodyHtml = wrapInEmailTemplate(contentHtml);
 
             const statusEl = document.getElementById('email-template-status');
             statusEl.textContent = 'Saving...';
@@ -960,13 +915,10 @@ ${content}
         }
 
         function previewEmailTemplate() {
-            const contentHtml = quill.root.innerHTML;
-
-            // Wrap in full email template
-            const fullHtml = wrapInEmailTemplate(contentHtml);
+            const bodyHtml = $('#email-body-editor').summernote('code');
 
             // Create sample data for preview
-            const previewHtml = fullHtml
+            const previewHtml = bodyHtml
                 .replace(/{volunteer_name}/g, 'Jane Smith')
                 .replace(/{venue}/g, 'The Fillmore')
                 .replace(/{location}/g, 'San Francisco, CA')
@@ -978,9 +930,6 @@ ${content}
             previewWindow.document.write(previewHtml);
             previewWindow.document.close();
         }
-
-        // Load email template on page load
-        loadEmailTemplate();
 
         // ============ VOLUNTEER MANAGEMENT ============
 
