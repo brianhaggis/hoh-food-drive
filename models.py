@@ -92,6 +92,16 @@ class ImpactStats(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class EmailTemplate(db.Model):
+    __tablename__ = 'email_templates'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)  # 'volunteer_confirmation'
+    subject = db.Column(db.String(255), nullable=False)
+    body_html = db.Column(db.Text, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class SlideshowImage(db.Model):
     __tablename__ = 'slideshow_images'
 

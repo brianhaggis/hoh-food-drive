@@ -419,6 +419,41 @@
             </div>
         </div>
 
+        <!-- Email Template Editor -->
+        <div class="card">
+            <h2>Volunteer Confirmation Email</h2>
+            <p style="color: #666; margin-bottom: 15px;">Customize the email sent to volunteers when they sign up. Use placeholders that will be replaced with actual values.</p>
+
+            <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <strong style="font-size: 13px;">Available Placeholders:</strong>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;">
+                    <code style="background: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">{volunteer_name}</code>
+                    <code style="background: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">{venue}</code>
+                    <code style="background: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">{location}</code>
+                    <code style="background: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">{show_date}</code>
+                    <code style="background: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">{pantries_html}</code>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="font-size: 12px; color: #666; display: block; margin-bottom: 5px; text-transform: uppercase;">Email Subject</label>
+                <input type="text" id="email-subject" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 14px;" placeholder="You're Confirmed! Food Drive Volunteer for {venue}">
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="font-size: 12px; color: #666; display: block; margin-bottom: 5px; text-transform: uppercase;">Email Body (HTML)</label>
+                <textarea id="email-body" rows="20" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 13px; font-family: 'Monaco', 'Menlo', monospace; line-height: 1.5;" placeholder="Enter HTML email content..."></textarea>
+            </div>
+
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn" onclick="saveEmailTemplate()">Save Template</button>
+                <button class="btn btn-secondary" onclick="resetEmailTemplate()">Reset to Default</button>
+                <button class="btn btn-info" onclick="previewEmailTemplate()">Preview</button>
+            </div>
+
+            <p id="email-template-status" style="margin-top: 15px; font-size: 13px; color: #666;"></p>
+        </div>
+
         <!-- Recent Volunteers -->
         <div class="card">
             <h2>Recent Volunteers</h2>
@@ -432,16 +467,27 @@
                         <th>Name</th>
                         <th>Email</th>
                         <th>Phone</th>
+                        <th>Show</th>
                         <th>Signed Up</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for v in volunteers %}
-                    <tr>
+                    <tr id="volunteer-{{ v.id }}">
                         <td>{{ v.name }}</td>
                         <td><a href="mailto:{{ v.email }}">{{ v.email }}</a></td>
                         <td>{{ v.phone }}</td>
+                        <td>
+                            <strong>{{ v.show.venue }}</strong><br>
+                            <span style="font-size: 12px; color: #666;">{{ v.show.date.strftime('%b %d, %Y') if v.show.date else 'TBD' }}</span>
+                        </td>
                         <td>{{ v.signup_date.strftime('%b %d, %Y') if v.signup_date else 'N/A' }}</td>
+                        <td>
+                            <button class="btn btn-small" style="background: #dc3545;" onclick="deleteVolunteer({{ v.id }}, '{{ v.name }}', '{{ v.show.venue }}')">
+                                Cancel
+                            </button>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -720,6 +766,140 @@
 
         // Load slideshow images on page load
         loadSlideshowImages();
+
+        // ============ EMAIL TEMPLATE EDITOR ============
+
+        async function loadEmailTemplate() {
+            try {
+                const response = await fetch('/admin/email-template/volunteer_confirmation');
+                const data = await response.json();
+
+                document.getElementById('email-subject').value = data.subject || '';
+                document.getElementById('email-body').value = data.body_html || '';
+
+                if (data.is_default) {
+                    document.getElementById('email-template-status').textContent = 'Using default template';
+                } else {
+                    document.getElementById('email-template-status').textContent = 'Custom template saved ' + (data.updated_at ? new Date(data.updated_at).toLocaleDateString() : '');
+                }
+            } catch (err) {
+                console.error('Error loading email template:', err);
+            }
+        }
+
+        async function saveEmailTemplate() {
+            const subject = document.getElementById('email-subject').value.trim();
+            const bodyHtml = document.getElementById('email-body').value.trim();
+
+            if (!subject || !bodyHtml) {
+                alert('Please fill in both subject and body');
+                return;
+            }
+
+            const statusEl = document.getElementById('email-template-status');
+            statusEl.textContent = 'Saving...';
+
+            try {
+                const response = await fetch('/admin/email-template/volunteer_confirmation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ subject, body_html: bodyHtml })
+                });
+
+                if (response.ok) {
+                    statusEl.textContent = 'Template saved successfully!';
+                    statusEl.style.color = '#2e7d32';
+                    setTimeout(() => {
+                        statusEl.style.color = '#666';
+                        loadEmailTemplate();
+                    }, 2000);
+                } else {
+                    const data = await response.json();
+                    statusEl.textContent = 'Error: ' + (data.error || 'Save failed');
+                    statusEl.style.color = '#c00';
+                }
+            } catch (err) {
+                statusEl.textContent = 'Error saving template';
+                statusEl.style.color = '#c00';
+            }
+        }
+
+        async function resetEmailTemplate() {
+            if (!confirm('Reset to the default template? Your custom template will be deleted.')) {
+                return;
+            }
+
+            const statusEl = document.getElementById('email-template-status');
+            statusEl.textContent = 'Resetting...';
+
+            try {
+                const response = await fetch('/admin/email-template/volunteer_confirmation', {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    statusEl.textContent = 'Reset to default template';
+                    statusEl.style.color = '#2e7d32';
+                    loadEmailTemplate();
+                    setTimeout(() => {
+                        statusEl.style.color = '#666';
+                    }, 2000);
+                } else {
+                    statusEl.textContent = 'Error resetting template';
+                    statusEl.style.color = '#c00';
+                }
+            } catch (err) {
+                statusEl.textContent = 'Error resetting template';
+                statusEl.style.color = '#c00';
+            }
+        }
+
+        function previewEmailTemplate() {
+            const bodyHtml = document.getElementById('email-body').value;
+
+            // Create sample data for preview
+            const previewHtml = bodyHtml
+                .replace(/{volunteer_name}/g, 'Jane Smith')
+                .replace(/{venue}/g, 'The Fillmore')
+                .replace(/{location}/g, 'San Francisco, CA')
+                .replace(/{show_date}/g, 'March 15, 2026 at 8:00 PM')
+                .replace(/{pantries_html}/g, '<h3>Local Food Pantries for Donations:</h3><p><em>Collected items will be delivered to one of these local organizations:</em></p><ul style="margin: 10px 0; padding-left: 20px;"><li style="margin-bottom: 15px;"><strong>SF-Marin Food Bank</strong><br><span style="color: #666;">900 Pennsylvania Ave, San Francisco, CA</span><br>Phone: (415) 282-1900<br><em>Hours: Mon-Fri 8am-5pm</em></li></ul>');
+
+            // Open preview in new window
+            const previewWindow = window.open('', '_blank', 'width=700,height=800');
+            previewWindow.document.write(previewHtml);
+            previewWindow.document.close();
+        }
+
+        // Load email template on page load
+        loadEmailTemplate();
+
+        // ============ VOLUNTEER MANAGEMENT ============
+
+        async function deleteVolunteer(volunteerId, volunteerName, venueName) {
+            if (!confirm(`Cancel ${volunteerName}'s volunteer signup for ${venueName}?\n\nThis will remove them from the show and reopen it for other volunteers.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/volunteers/${volunteerId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    // Remove the row from the table
+                    const row = document.getElementById(`volunteer-${volunteerId}`);
+                    if (row) row.remove();
+
+                    // Refresh the page to update show statuses
+                    location.reload();
+                } else {
+                    alert('Error canceling volunteer');
+                }
+            } catch (err) {
+                alert('Error canceling volunteer');
+            }
+        }
     </script>
 </body>
 </html>

@@ -7,7 +7,7 @@ from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from config import Config
-from models import db, Show, Volunteer, ImpactStats, SlideshowImage
+from models import db, Show, Volunteer, ImpactStats, SlideshowImage, EmailTemplate
 from werkzeug.utils import secure_filename
 from bandsintown import sync_shows
 from email_service import send_volunteer_confirmation, send_admin_notification
@@ -430,6 +430,26 @@ def download_volunteers_csv():
     )
 
 
+@app.route('/admin/volunteers/<int:volunteer_id>', methods=['DELETE'])
+@admin_required
+def delete_volunteer(volunteer_id):
+    """Delete a volunteer and reset the show's has_volunteer flag."""
+    volunteer = Volunteer.query.get_or_404(volunteer_id)
+    show = volunteer.show
+
+    # Delete the volunteer
+    db.session.delete(volunteer)
+
+    # Check if show has any other volunteers, if not reset has_volunteer
+    remaining = Volunteer.query.filter_by(show_id=show.id).filter(Volunteer.id != volunteer_id).count()
+    if remaining == 0:
+        show.has_volunteer = False
+
+    db.session.commit()
+
+    return jsonify({'success': True, 'show_id': show.id, 'has_volunteer': show.has_volunteer})
+
+
 @app.route('/admin/shows/<int:show_id>/pantries', methods=['GET'])
 @admin_required
 def get_show_pantries_admin(show_id):
@@ -564,6 +584,63 @@ def update_slideshow_image(image_id):
 
     db.session.commit()
     return jsonify({'success': True, 'image': image.to_dict()})
+
+
+# ============ EMAIL TEMPLATE ROUTES ============
+
+@app.route('/admin/email-template/<name>')
+@admin_required
+def get_email_template(name):
+    """Get an email template (custom or default)."""
+    from email_service import DEFAULT_VOLUNTEER_SUBJECT, DEFAULT_VOLUNTEER_BODY
+
+    template = EmailTemplate.query.filter_by(name=name).first()
+    if template:
+        return jsonify({
+            'subject': template.subject,
+            'body_html': template.body_html,
+            'is_default': False,
+            'updated_at': template.updated_at.isoformat() if template.updated_at else None
+        })
+
+    # Return default template
+    if name == 'volunteer_confirmation':
+        return jsonify({
+            'subject': DEFAULT_VOLUNTEER_SUBJECT,
+            'body_html': DEFAULT_VOLUNTEER_BODY,
+            'is_default': True
+        })
+
+    return jsonify({'subject': '', 'body_html': '', 'is_default': True})
+
+
+@app.route('/admin/email-template/<name>', methods=['POST'])
+@admin_required
+def save_email_template(name):
+    """Save an email template."""
+    data = request.get_json()
+
+    template = EmailTemplate.query.filter_by(name=name).first()
+    if not template:
+        template = EmailTemplate(name=name)
+        db.session.add(template)
+
+    template.subject = data.get('subject', '')
+    template.body_html = data.get('body_html', '')
+    db.session.commit()
+
+    return jsonify({'success': True})
+
+
+@app.route('/admin/email-template/<name>', methods=['DELETE'])
+@admin_required
+def delete_email_template(name):
+    """Delete custom template (revert to default)."""
+    template = EmailTemplate.query.filter_by(name=name).first()
+    if template:
+        db.session.delete(template)
+        db.session.commit()
+    return jsonify({'success': True})
 
 
 if __name__ == '__main__':
