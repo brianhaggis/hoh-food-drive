@@ -31,7 +31,7 @@
         }
         .navbar h1 { font-size: 20px; }
         .navbar a { color: white; text-decoration: none; }
-        .container {
+        .admin-container {
             width: 100% !important;
             max-width: 1400px !important;
             margin: 0 auto !important;
@@ -297,7 +297,7 @@
         }
         /* Responsive */
         @media (max-width: 1024px) {
-            .container {
+            .admin-container {
                 padding: 20px;
             }
         }
@@ -307,7 +307,7 @@
                 flex-direction: column;
                 gap: 10px;
             }
-            .container {
+            .admin-container {
                 padding: 15px;
             }
             .card {
@@ -345,7 +345,7 @@
         </div>
     </nav>
 
-    <div class="container">
+    <div class="admin-container">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
