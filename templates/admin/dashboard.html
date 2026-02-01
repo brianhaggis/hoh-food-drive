@@ -23,7 +23,8 @@
         .navbar h1 { font-size: 20px; }
         .navbar a { color: white; text-decoration: none; }
         .container {
-            max-width: 1200px;
+            width: 100%;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 30px;
         }
@@ -277,9 +278,51 @@
         .slideshow-item.inactive {
             opacity: 0.5;
         }
+        /* Summernote overrides */
+        .note-editor {
+            width: 100% !important;
+        }
+        .note-editable {
+            background: white;
+        }
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .container {
+                padding: 20px;
+            }
+        }
         @media (max-width: 768px) {
-            .show-table { font-size: 14px; }
-            .show-table th, .show-table td { padding: 8px; }
+            .navbar {
+                padding: 15px;
+                flex-direction: column;
+                gap: 10px;
+            }
+            .container {
+                padding: 15px;
+            }
+            .card {
+                padding: 15px;
+            }
+            .show-table { font-size: 13px; }
+            .show-table th, .show-table td { padding: 8px 4px; }
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            .btn-group {
+                flex-direction: column;
+            }
+            .slideshow-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 480px) {
+            .show-table th:nth-child(3),
+            .show-table td:nth-child(3) {
+                display: none;
+            }
+            .slideshow-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
