@@ -59,6 +59,12 @@ async function initSlideshow() {
             if (slideshowImages.length > 1) {
                 setInterval(nextSlide, 7000); // Ken Burns: rotate every 7 seconds
             }
+        } else {
+            // No uploaded images - apply Ken Burns to fallback
+            const fallback = document.querySelector('.slideshow-image');
+            if (fallback) {
+                fallback.classList.add(kbVariations[0]);
+            }
         }
     } catch (error) {
         console.error('Error loading slideshow:', error);
@@ -67,6 +73,8 @@ async function initSlideshow() {
 
 // Ken Burns animation variations
 const kbVariations = ['', 'kb-alt', 'kb-right'];
+
+const FALLBACK_IMAGE = 'https://d10j3mvrs1suex.cloudfront.net/s:bzglfiles/u/169024/f6179d0bd823113a2163f60502ad0ac7f2fc636b/original/house-of-hamill-trio-2-credit-sarah-snyder.jpeg';
 
 function renderSlideshow() {
     const container = document.getElementById('homepage-slideshow');
@@ -78,7 +86,8 @@ function renderSlideshow() {
     container.innerHTML = slideshowImages.map((img, i) => `
         <img src="${img.url}" alt="${img.caption || 'Food drive community photo'}"
              class="slideshow-image ${i === 0 ? 'active' : ''} ${kbVariations[i % kbVariations.length]}"
-             loading="lazy">
+             loading="lazy"
+             onerror="this.onerror=null; this.src='${FALLBACK_IMAGE}';">
     `).join('');
 
     // Set initial caption
