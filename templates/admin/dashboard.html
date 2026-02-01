@@ -823,6 +823,50 @@
             placeholder: 'Compose your email...'
         });
 
+        // Extract body content from full HTML email
+        function extractBodyContent(html) {
+            // If it's a full HTML document, extract the content div
+            const match = html.match(/<div class="content">([\s\S]*?)<\/div>\s*<\/div>\s*<\/body>/i);
+            if (match) {
+                return match[1].trim();
+            }
+            // Try to extract just body content
+            const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+            if (bodyMatch) {
+                return bodyMatch[1].trim();
+            }
+            return html;
+        }
+
+        // Wrap content back into full HTML email structure
+        function wrapInEmailTemplate(content) {
+            return `<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: 'Georgia', serif; color: #2c2c2c; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #43a047 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f1f8e9; padding: 30px; border-radius: 0 0 8px 8px; }
+        .highlight { background: #fff; padding: 20px; border-left: 4px solid #2e7d32; margin: 20px 0; }
+        h1 { margin: 0; font-weight: normal; }
+        .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Thank You, {volunteer_name}!</h1>
+            <p>You're making a difference with House of Hamill</p>
+        </div>
+        <div class="content">
+${content}
+        </div>
+    </div>
+</body>
+</html>`;
+        }
+
         async function loadEmailTemplate() {
             try {
                 const response = await fetch('/admin/email-template/volunteer_confirmation');
@@ -830,9 +874,10 @@
 
                 document.getElementById('email-subject').value = data.subject || '';
 
-                // Load HTML into Quill
+                // Load HTML into Quill (extract body content from full HTML)
                 if (data.body_html) {
-                    quill.root.innerHTML = data.body_html;
+                    const content = extractBodyContent(data.body_html);
+                    quill.root.innerHTML = content;
                 }
 
                 if (data.is_default) {
@@ -847,12 +892,15 @@
 
         async function saveEmailTemplate() {
             const subject = document.getElementById('email-subject').value.trim();
-            const bodyHtml = quill.root.innerHTML.trim();
+            const contentHtml = quill.root.innerHTML.trim();
 
-            if (!subject || !bodyHtml || bodyHtml === '<p><br></p>') {
+            if (!subject || !contentHtml || contentHtml === '<p><br></p>') {
                 alert('Please fill in both subject and body');
                 return;
             }
+
+            // Wrap content in full email template
+            const bodyHtml = wrapInEmailTemplate(contentHtml);
 
             const statusEl = document.getElementById('email-template-status');
             statusEl.textContent = 'Saving...';
@@ -912,10 +960,13 @@
         }
 
         function previewEmailTemplate() {
-            const bodyHtml = quill.root.innerHTML;
+            const contentHtml = quill.root.innerHTML;
+
+            // Wrap in full email template
+            const fullHtml = wrapInEmailTemplate(contentHtml);
 
             // Create sample data for preview
-            const previewHtml = bodyHtml
+            const previewHtml = fullHtml
                 .replace(/{volunteer_name}/g, 'Jane Smith')
                 .replace(/{venue}/g, 'The Fillmore')
                 .replace(/{location}/g, 'San Francisco, CA')
