@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initMap();
     fetchShows();
     fetchStats();
-    initSlideshow();
+    initParallax();
     initMobileNav();
 
     // Set current year in footer
@@ -45,89 +45,78 @@ function initMobileNav() {
     });
 }
 
-// Slideshow functionality
-let slideshowImages = [];
-let currentSlideIndex = 0;
-
-async function initSlideshow() {
-    try {
-        const response = await fetch('/api/slideshow');
-        slideshowImages = await response.json();
-
-        if (slideshowImages.length > 0) {
-            renderSlideshow();
-            if (slideshowImages.length > 1) {
-                setInterval(nextSlide, 7000); // Ken Burns: rotate every 7 seconds
-            }
-        } else {
-            // No uploaded images - apply Ken Burns to fallback
-            const fallback = document.querySelector('.slideshow-image');
-            if (fallback) {
-                fallback.classList.add(kbVariations[0]);
-            }
-        }
-    } catch (error) {
-        console.error('Error loading slideshow:', error);
-    }
-}
-
-// Ken Burns animation variations
-const kbVariations = ['', 'kb-alt', 'kb-right'];
-
+// Parallax image functionality
 const FALLBACK_IMAGE = 'https://d10j3mvrs1suex.cloudfront.net/s:bzglfiles/u/169024/f6179d0bd823113a2163f60502ad0ac7f2fc636b/original/house-of-hamill-trio-2-credit-sarah-snyder.jpeg';
 
-function renderSlideshow() {
-    const container = document.getElementById('homepage-slideshow');
-    const captionEl = document.getElementById('slideshow-caption');
+async function initParallax() {
+    const parallaxImage = document.getElementById('parallax-image');
+    const captionEl = document.getElementById('parallax-caption');
 
-    if (!container || slideshowImages.length === 0) return;
+    if (!parallaxImage) return;
 
-    // Clear existing and add new images with Ken Burns variations
-    container.innerHTML = slideshowImages.map((img, i) => `
-        <img src="${img.url}" alt="${img.caption || 'Food drive community photo'}"
-             class="slideshow-image ${i === 0 ? 'active' : ''} ${kbVariations[i % kbVariations.length]}"
-             loading="lazy"
-             onerror="this.onerror=null; this.src='${FALLBACK_IMAGE}';">
-    `).join('');
+    let imageUrl = FALLBACK_IMAGE;
+    let caption = '';
 
-    // Set initial caption
-    if (captionEl && slideshowImages[0].caption) {
-        captionEl.textContent = slideshowImages[0].caption;
+    // Try to load uploaded image
+    try {
+        const response = await fetch('/api/slideshow');
+        const images = await response.json();
+
+        if (images.length > 0) {
+            imageUrl = images[0].url;
+            caption = images[0].caption || '';
+        }
+    } catch (error) {
+        console.error('Error loading parallax image:', error);
     }
+
+    // Set the background image
+    parallaxImage.style.backgroundImage = `url('${imageUrl}')`;
+
+    // Set caption if available
+    if (captionEl && caption) {
+        captionEl.textContent = caption;
+    }
+
+    // Initialize parallax scroll effect
+    initParallaxScroll();
 }
 
-function nextSlide() {
-    const images = document.querySelectorAll('.slideshow-image');
-    const captionEl = document.getElementById('slideshow-caption');
+function initParallaxScroll() {
+    const parallaxImage = document.getElementById('parallax-image');
+    const container = document.getElementById('parallax-container');
 
-    if (images.length <= 1) return;
+    if (!parallaxImage || !container) return;
 
-    const prevIndex = currentSlideIndex;
-    currentSlideIndex = (currentSlideIndex + 1) % images.length;
+    function updateParallax() {
+        const rect = container.getBoundingClientRect();
+        const windowHeight = window.innerHeight;
 
-    // Crossfade: remove active from current, add to next
-    images[prevIndex].classList.remove('active');
-    images[prevIndex].classList.add('prev');
+        // Only apply parallax when container is in view
+        if (rect.bottom > 0 && rect.top < windowHeight) {
+            // Calculate scroll progress (-1 to 1, where 0 is centered in viewport)
+            const progress = (rect.top + rect.height / 2 - windowHeight / 2) / windowHeight;
 
-    // Reset animation by removing and re-adding class
-    images[currentSlideIndex].classList.remove(kbVariations[currentSlideIndex % kbVariations.length]);
-    void images[currentSlideIndex].offsetWidth; // Trigger reflow
-    images[currentSlideIndex].classList.add(kbVariations[currentSlideIndex % kbVariations.length]);
-    images[currentSlideIndex].classList.add('active');
-
-    // Clean up prev class after transition
-    setTimeout(() => {
-        images[prevIndex].classList.remove('prev');
-    }, 1500);
-
-    // Update caption with fade
-    if (captionEl) {
-        captionEl.style.opacity = '0';
-        setTimeout(() => {
-            captionEl.textContent = slideshowImages[currentSlideIndex].caption || '';
-            captionEl.style.opacity = '1';
-        }, 300);
+            // Move image based on scroll (parallax factor of 0.3)
+            const offset = progress * 30; // 30% movement range
+            parallaxImage.style.transform = `translateY(${offset}%)`;
+        }
     }
+
+    // Update on scroll with throttling for performance
+    let ticking = false;
+    window.addEventListener('scroll', () => {
+        if (!ticking) {
+            requestAnimationFrame(() => {
+                updateParallax();
+                ticking = false;
+            });
+            ticking = true;
+        }
+    });
+
+    // Initial update
+    updateParallax();
 }
 
 // Initialize Leaflet map
