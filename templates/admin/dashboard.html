@@ -5,12 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard | House of Hamill Food Drive</title>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <!-- Summernote CSS - must be in head -->
+    <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.css" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * { box-sizing: border-box; }
+        html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            overflow-x: hidden;
+        }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f5;
-            color: #333;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+            background: #f5f5f5 !important;
+            color: #333 !important;
         }
         .navbar {
             background: #2e7d32;
@@ -23,17 +32,18 @@
         .navbar h1 { font-size: 20px; }
         .navbar a { color: white; text-decoration: none; }
         .container {
-            width: 100%;
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 30px;
+            width: 100% !important;
+            max-width: 1400px !important;
+            margin: 0 auto !important;
+            padding: 30px !important;
         }
         .card {
-            background: white;
+            background: white !important;
             border-radius: 12px;
             padding: 25px;
             margin-bottom: 25px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            width: 100% !important;
         }
         .card h2 {
             color: #2e7d32;
@@ -598,8 +608,7 @@
         </div>
     </div>
 
-    <!-- Summernote rich text editor -->
-    <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.css" rel="stylesheet">
+    <!-- Summernote JS -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.js"></script>
 
