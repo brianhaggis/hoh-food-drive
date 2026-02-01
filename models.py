@@ -90,3 +90,23 @@ class ImpactStats(db.Model):
     meals_provided = db.Column(db.Integer, default=0)
     shows_participated = db.Column(db.Integer, default=0)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class SlideshowImage(db.Model):
+    __tablename__ = 'slideshow_images'
+
+    id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(255), nullable=False)
+    caption = db.Column(db.String(255), nullable=True)
+    display_order = db.Column(db.Integer, default=0)
+    is_active = db.Column(db.Boolean, default=True)
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'filename': self.filename,
+            'caption': self.caption,
+            'display_order': self.display_order,
+            'is_active': self.is_active
+        }

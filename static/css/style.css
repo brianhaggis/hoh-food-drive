@@ -299,6 +299,39 @@ img {
     box-shadow: var(--shadow-lg);
 }
 
+/* Homepage Slideshow */
+.slideshow-container {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+}
+
+.slideshow-image {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4/3;
+    object-fit: cover;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.8s ease-in-out;
+}
+
+.slideshow-image.active {
+    display: block;
+    opacity: 1;
+}
+
+.slideshow-caption {
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--color-text-light);
+    font-style: italic;
+    margin-top: 12px;
+    min-height: 1.4em;
+}
+
 /* Impact Section */
 .impact-section {
     padding: 80px 0;
