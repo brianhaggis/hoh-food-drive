@@ -109,7 +109,7 @@ def send_volunteer_confirmation(volunteer_email, volunteer_name, show):
 
     try:
         params = {
-            "from": "House of Hamill Food Drive <noreply@houseofhamill.com>",
+            "from": "House of Hamill Food Drive <onboarding@resend.dev>",
             "to": [volunteer_email],
             "subject": f"You're Confirmed! Food Drive Volunteer for {show.venue}",
             "html": html_content
@@ -174,7 +174,7 @@ def send_admin_notification(volunteer, show):
 
     try:
         params = {
-            "from": "Food Drive Notifications <noreply@houseofhamill.com>",
+            "from": "Food Drive Notifications <onboarding@resend.dev>",
             "to": [current_app.config['ADMIN_EMAIL']],
             "subject": f"New Volunteer: {volunteer.name} for {show.venue}",
             "html": html_content
