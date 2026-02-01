@@ -208,15 +208,57 @@ def format_pantries_for_email(pantries):
     return html
 
 
+def clean_text(text):
+    """Clean up scraped text - remove extra whitespace and weird characters."""
+    if not text:
+        return ''
+    # Normalize whitespace
+    text = re.sub(r'\s+', ' ', text).strip()
+    # Remove common HTML artifacts
+    text = re.sub(r'&[a-z]+;', ' ', text)
+    # Remove excessive punctuation
+    text = re.sub(r'[,\s]+$', '', text)
+    return text
+
+
+def format_phone(phone):
+    """Format phone number consistently."""
+    if not phone:
+        return ''
+    # Extract just digits
+    digits = re.sub(r'\D', '', phone)
+    if len(digits) == 10:
+        return f"({digits[:3]}) {digits[3:6]}-{digits[6:]}"
+    elif len(digits) == 11 and digits[0] == '1':
+        return f"({digits[1:4]}) {digits[4:7]}-{digits[7:]}"
+    return phone.strip()
+
+
 def format_pantries_for_display(pantries):
     """Format pantry list for frontend display."""
     if not pantries:
         return []
 
-    return [{
-        'name': p.get('name', ''),
-        'address': p.get('address', ''),
-        'phone': p.get('phone', ''),
-        'hours': p.get('hours', ''),
-        'is_secular': p.get('is_secular', False)
-    } for p in pantries]
+    result = []
+    for p in pantries:
+        name = clean_text(p.get('name', ''))
+        if not name:
+            continue
+
+        # Clean up address - remove duplicate city/state if present
+        address = clean_text(p.get('address', ''))
+
+        # Clean up hours - truncate if too long
+        hours = clean_text(p.get('hours', ''))
+        if len(hours) > 100:
+            hours = hours[:100] + '...'
+
+        result.append({
+            'name': name,
+            'address': address,
+            'phone': format_phone(p.get('phone', '')),
+            'hours': hours,
+            'is_secular': p.get('is_secular', False)
+        })
+
+    return result

@@ -367,6 +367,32 @@ function openVolunteerModal(showId) {
         ${escapeHtml(location)} • ${formattedDate}
     `;
 
+    // Display pantry info
+    const pantryContainer = document.getElementById('modal-pantries');
+    if (pantryContainer) {
+        if (show.pantries && show.pantries.length > 0) {
+            pantryContainer.innerHTML = `
+                <h4>Suggested Food Banks for Donations</h4>
+                <p class="pantry-intro">After the show, please deliver collected items to one of these nearby locations:</p>
+                ${show.pantries.map(p => `
+                    <div class="pantry-card">
+                        <strong>${escapeHtml(p.name || 'Food Pantry')}</strong>
+                        ${p.address ? `<div class="pantry-detail">${escapeHtml(p.address)}</div>` : ''}
+                        ${p.phone ? `<div class="pantry-detail">${escapeHtml(p.phone)}</div>` : ''}
+                        ${p.hours ? `<div class="pantry-hours">${escapeHtml(p.hours)}</div>` : ''}
+                    </div>
+                `).join('')}
+            `;
+            pantryContainer.style.display = 'block';
+        } else {
+            pantryContainer.innerHTML = `
+                <h4>Suggested Food Banks for Donations</h4>
+                <p class="pantry-intro">We'll send you information about local food banks in your confirmation email.</p>
+            `;
+            pantryContainer.style.display = 'block';
+        }
+    }
+
     // Reset form
     document.getElementById('volunteer-form').reset();
     document.getElementById('volunteer-form').style.display = 'block';
