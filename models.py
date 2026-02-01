@@ -70,6 +70,8 @@ class Volunteer(db.Model):
     phone = db.Column(db.String(20), nullable=False)
     show_id = db.Column(db.Integer, db.ForeignKey('shows.id'), nullable=False)
     signup_date = db.Column(db.DateTime, default=datetime.utcnow)
+    cancelled = db.Column(db.Boolean, default=False)
+    cancelled_at = db.Column(db.DateTime, nullable=True)
 
     def to_dict(self):
         return {
@@ -78,7 +80,9 @@ class Volunteer(db.Model):
             'email': self.email,
             'phone': self.phone,
             'show_id': self.show_id,
-            'signup_date': self.signup_date.isoformat() if self.signup_date else None
+            'signup_date': self.signup_date.isoformat() if self.signup_date else None,
+            'cancelled': self.cancelled,
+            'cancelled_at': self.cancelled_at.isoformat() if self.cancelled_at else None
         }
 
 

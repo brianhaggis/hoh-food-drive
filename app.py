@@ -82,6 +82,17 @@ def create_app():
                         conn.execute(text('ALTER TABLE shows ADD COLUMN exclude_reason VARCHAR(200)'))
                         conn.commit()
 
+            # Check volunteers table columns
+            if 'volunteers' in inspector.get_table_names():
+                columns = [col['name'] for col in inspector.get_columns('volunteers')]
+                with db.engine.connect() as conn:
+                    if 'cancelled' not in columns:
+                        conn.execute(text('ALTER TABLE volunteers ADD COLUMN cancelled BOOLEAN DEFAULT FALSE'))
+                        conn.commit()
+                    if 'cancelled_at' not in columns:
+                        conn.execute(text('ALTER TABLE volunteers ADD COLUMN cancelled_at TIMESTAMP'))
+                        conn.commit()
+
             # Create slideshow_images table if not exists
             if 'slideshow_images' not in inspector.get_table_names():
                 db.create_all()
@@ -238,7 +249,7 @@ def volunteer_signup():
 def get_stats():
     """Get impact statistics."""
     stats = ImpactStats.query.first()
-    volunteer_count = Volunteer.query.count()
+    volunteer_count = Volunteer.query.filter_by(cancelled=False).count()
 
     # Auto-calculate shows participated (past non-excluded shows)
     shows_participated = Show.query.filter(
@@ -340,8 +351,54 @@ def admin_dashboard():
     """Admin dashboard."""
     shows = Show.query.filter(Show.date >= datetime.utcnow()).order_by(Show.date).all()
     stats = ImpactStats.query.first()
-    volunteers = Volunteer.query.order_by(Volunteer.signup_date.desc()).limit(10).all()
+    # Only show active (non-cancelled) volunteers
+    volunteers = Volunteer.query.filter_by(cancelled=False).order_by(Volunteer.signup_date.desc()).limit(10).all()
     return render_template('admin/dashboard.html', shows=shows, stats=stats, volunteers=volunteers)
+
+
+@app.route('/admin/volunteers/search')
+@admin_required
+def search_volunteers():
+    """Search all volunteers (including cancelled) by name, email, city, or venue."""
+    query = request.args.get('q', '').strip().lower()
+    include_cancelled = request.args.get('include_cancelled', 'true') == 'true'
+
+    if not query:
+        return jsonify({'volunteers': []})
+
+    # Build the query with joins to search show data
+    volunteer_query = Volunteer.query.join(Show)
+
+    if not include_cancelled:
+        volunteer_query = volunteer_query.filter(Volunteer.cancelled == False)
+
+    # Search across multiple fields
+    search_filter = db.or_(
+        Volunteer.name.ilike(f'%{query}%'),
+        Volunteer.email.ilike(f'%{query}%'),
+        Show.venue.ilike(f'%{query}%'),
+        Show.city.ilike(f'%{query}%')
+    )
+
+    volunteers = volunteer_query.filter(search_filter).order_by(Volunteer.signup_date.desc()).limit(50).all()
+
+    results = []
+    for v in volunteers:
+        results.append({
+            'id': v.id,
+            'name': v.name,
+            'email': v.email,
+            'phone': v.phone,
+            'venue': v.show.venue,
+            'city': v.show.city,
+            'state': v.show.state,
+            'show_date': v.show.date.strftime('%b %d, %Y') if v.show.date else 'TBD',
+            'signup_date': v.signup_date.strftime('%b %d, %Y') if v.signup_date else 'N/A',
+            'cancelled': v.cancelled,
+            'cancelled_at': v.cancelled_at.strftime('%b %d, %Y') if v.cancelled_at else None
+        })
+
+    return jsonify({'volunteers': results})
 
 
 @app.route('/admin/shows/<int:show_id>/toggle', methods=['POST'])
@@ -432,20 +489,28 @@ def download_volunteers_csv():
 
 @app.route('/admin/volunteers/<int:volunteer_id>', methods=['DELETE'])
 @admin_required
-def delete_volunteer(volunteer_id):
-    """Delete a volunteer and reset the show's has_volunteer flag."""
+def cancel_volunteer(volunteer_id):
+    """Cancel a volunteer signup and notify both parties."""
+    from datetime import datetime
+    from email_service import send_volunteer_cancellation, send_admin_cancellation_notice
+
     volunteer = Volunteer.query.get_or_404(volunteer_id)
     show = volunteer.show
 
-    # Delete the volunteer
-    db.session.delete(volunteer)
+    # Mark as cancelled (don't delete - keep for future outreach)
+    volunteer.cancelled = True
+    volunteer.cancelled_at = datetime.utcnow()
 
-    # Check if show has any other volunteers, if not reset has_volunteer
-    remaining = Volunteer.query.filter_by(show_id=show.id).filter(Volunteer.id != volunteer_id).count()
+    # Check if show has any other active volunteers, if not reset has_volunteer
+    remaining = Volunteer.query.filter_by(show_id=show.id, cancelled=False).filter(Volunteer.id != volunteer_id).count()
     if remaining == 0:
         show.has_volunteer = False
 
     db.session.commit()
+
+    # Send cancellation emails
+    send_volunteer_cancellation(volunteer, show)
+    send_admin_cancellation_notice(volunteer, show)
 
     return jsonify({'success': True, 'show_id': show.id, 'has_volunteer': show.has_volunteer})
 

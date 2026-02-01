@@ -230,3 +230,140 @@ def send_admin_notification(volunteer, show):
     except Exception as e:
         current_app.logger.error(f"Error sending admin notification: {e}")
         return False
+
+
+def send_volunteer_cancellation(volunteer, show):
+    """Send cancellation confirmation to volunteer."""
+    resend.api_key = current_app.config['RESEND_API_KEY']
+
+    show_date = show.date.strftime('%B %d, %Y') if show.date else 'TBD'
+    location = f"{show.city}, {show.state or show.country}"
+
+    html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: 'Georgia', serif; color: #2c2c2c; line-height: 1.6; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .header {{ background: #5d4037; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }}
+        .content {{ background: #fafafa; padding: 30px; border-radius: 0 0 8px 8px; }}
+        h1 {{ margin: 0; font-weight: normal; }}
+        .footer {{ text-align: center; margin-top: 30px; color: #666; font-size: 14px; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Volunteer Signup Cancelled</h1>
+        </div>
+        <div class="content">
+            <p>Hi {volunteer.name},</p>
+
+            <p>This email confirms that your volunteer signup has been cancelled for:</p>
+
+            <div style="background: #fff; padding: 20px; border-left: 4px solid #5d4037; margin: 20px 0;">
+                <strong>{show.venue}</strong><br>
+                {location}<br>
+                {show_date}
+            </div>
+
+            <p>We're sorry you won't be able to join us for this show. If your plans change or you'd like to volunteer for a different show, you're always welcome to sign up again at our website.</p>
+
+            <p>Thank you for your interest in helping House of Hamill fight hunger in our communities!</p>
+
+            <div class="footer">
+                <p>With gratitude,<br><strong>House of Hamill</strong></p>
+                <p><a href="https://www.houseofhamill.com">www.houseofhamill.com</a></p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>"""
+
+    try:
+        params = {
+            "from": "House of Hamill Volunteers <volunteers@houseofhamill.com>",
+            "to": [volunteer.email],
+            "reply_to": "volunteers@houseofhamill.com",
+            "subject": f"Volunteer Signup Cancelled - {show.venue}",
+            "html": html_content
+        }
+        resend.Emails.send(params)
+        return True
+    except Exception as e:
+        current_app.logger.error(f"Error sending volunteer cancellation: {e}")
+        return False
+
+
+def send_admin_cancellation_notice(volunteer, show):
+    """Notify band that a volunteer has cancelled and the slot is reopened."""
+    resend.api_key = current_app.config['RESEND_API_KEY']
+
+    show_date = show.date.strftime('%A, %B %d, %Y at %I:%M %p') if show.date else 'TBD'
+
+    html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #2c2c2c; line-height: 1.6; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .header {{ background: #c62828; color: white; padding: 25px; text-align: center; border-radius: 8px 8px 0 0; }}
+        .content {{ background: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px; }}
+        .info-box {{ background: #fff; padding: 20px; border-radius: 8px; margin: 15px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+        h1 {{ margin: 0; font-size: 24px; }}
+        h2 {{ color: #c62828; font-size: 18px; margin: 0 0 15px 0; }}
+        table {{ width: 100%; border-collapse: collapse; }}
+        td {{ padding: 8px 0; border-bottom: 1px solid #eee; }}
+        td:first-child {{ color: #666; width: 100px; }}
+        .action-needed {{ background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 8px; margin-top: 20px; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Volunteer Cancelled</h1>
+            <p style="margin: 10px 0 0 0; opacity: 0.9;">{show.venue} - {show.city}, {show.state or show.country}</p>
+        </div>
+        <div class="content">
+            <div class="info-box">
+                <h2>Cancelled Volunteer</h2>
+                <table>
+                    <tr><td>Name</td><td><strong>{volunteer.name}</strong></td></tr>
+                    <tr><td>Email</td><td>{volunteer.email}</td></tr>
+                    <tr><td>Phone</td><td>{volunteer.phone}</td></tr>
+                </table>
+            </div>
+
+            <div class="info-box">
+                <h2>Show Details</h2>
+                <table>
+                    <tr><td>Venue</td><td><strong>{show.venue}</strong></td></tr>
+                    <tr><td>Location</td><td>{show.city}, {show.state or show.country}</td></tr>
+                    <tr><td>Date</td><td>{show_date}</td></tr>
+                </table>
+            </div>
+
+            <div class="action-needed">
+                <strong>Action Needed:</strong>
+                <ul style="margin: 10px 0 0 0; padding-left: 20px;">
+                    <li>Remove <strong>{volunteer.name}</strong> from the guest list</li>
+                    <li>This show is now <strong>open for new volunteers</strong></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html>"""
+
+    try:
+        params = {
+            "from": "House of Hamill Volunteers <volunteers@houseofhamill.com>",
+            "to": ["volunteers@houseofhamill.com"],
+            "subject": f"CANCELLED: {volunteer.name} for {show.venue} ({show.city}) - Slot Reopened",
+            "html": html_content
+        }
+        resend.Emails.send(params)
+        return True
+    except Exception as e:
+        current_app.logger.error(f"Error sending admin cancellation notice: {e}")
+        return False

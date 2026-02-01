@@ -454,9 +454,41 @@
             <p id="email-template-status" style="margin-top: 15px; font-size: 13px; color: #666;"></p>
         </div>
 
+        <!-- Volunteer Search -->
+        <div class="card">
+            <h2>Search Volunteers</h2>
+            <p style="color: #666; margin-bottom: 15px;">Search all volunteers (past and present) by name, email, city, or venue.</p>
+
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: end;">
+                <div style="flex: 1; min-width: 250px;">
+                    <input type="text" id="volunteer-search" placeholder="Search by name, email, city, or venue..."
+                           style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 14px;">
+                </div>
+                <label style="display: flex; align-items: center; gap: 5px; font-size: 13px; color: #666;">
+                    <input type="checkbox" id="include-cancelled" checked> Include cancelled
+                </label>
+                <button class="btn" onclick="searchVolunteers()">Search</button>
+            </div>
+
+            <div id="search-results-container" style="margin-top: 20px; display: none;">
+                <table class="show-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Show</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="search-results-body"></tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- Recent Volunteers -->
         <div class="card">
-            <h2>Recent Volunteers</h2>
+            <h2>Active Volunteers</h2>
             <div style="margin-bottom: 15px;">
                 <a href="{{ url_for('download_volunteers_csv') }}" class="btn btn-secondary">Download All as CSV</a>
             </div>
@@ -900,6 +932,61 @@
                 alert('Error canceling volunteer');
             }
         }
+
+        // ============ VOLUNTEER SEARCH ============
+
+        async function searchVolunteers() {
+            const query = document.getElementById('volunteer-search').value.trim();
+            const includeCancelled = document.getElementById('include-cancelled').checked;
+
+            if (!query) {
+                document.getElementById('search-results-container').style.display = 'none';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/volunteers/search?q=${encodeURIComponent(query)}&include_cancelled=${includeCancelled}`);
+                const data = await response.json();
+
+                const container = document.getElementById('search-results-container');
+                const tbody = document.getElementById('search-results-body');
+
+                if (data.volunteers.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #666;">No volunteers found</td></tr>';
+                } else {
+                    tbody.innerHTML = data.volunteers.map(v => `
+                        <tr style="${v.cancelled ? 'opacity: 0.6;' : ''}">
+                            <td>
+                                ${escapeHtml(v.name)}
+                                ${v.cancelled ? '<br><span class="badge badge-secondary">Cancelled</span>' : ''}
+                            </td>
+                            <td><a href="mailto:${escapeHtml(v.email)}">${escapeHtml(v.email)}</a></td>
+                            <td>${escapeHtml(v.phone)}</td>
+                            <td>
+                                <strong>${escapeHtml(v.venue)}</strong><br>
+                                <span style="font-size: 12px; color: #666;">${escapeHtml(v.city)}, ${escapeHtml(v.state || '')}</span><br>
+                                <span style="font-size: 11px; color: #888;">${v.show_date}</span>
+                            </td>
+                            <td>
+                                ${v.cancelled
+                                    ? `<span style="font-size: 12px; color: #666;">Cancelled ${v.cancelled_at || ''}</span>`
+                                    : `<span class="badge badge-success">Active</span>`
+                                }
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+
+                container.style.display = 'block';
+            } catch (err) {
+                console.error('Search error:', err);
+            }
+        }
+
+        // Allow search on Enter key
+        document.getElementById('volunteer-search').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchVolunteers();
+        });
     </script>
 </body>
 </html>
