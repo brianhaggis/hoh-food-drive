@@ -53,7 +53,7 @@ async function initSlideshow() {
         if (slideshowImages.length > 0) {
             renderSlideshow();
             if (slideshowImages.length > 1) {
-                setInterval(nextSlide, 5000); // Rotate every 5 seconds
+                setInterval(nextSlide, 7000); // Ken Burns: rotate every 7 seconds
             }
         }
     } catch (error) {
@@ -61,16 +61,20 @@ async function initSlideshow() {
     }
 }
 
+// Ken Burns animation variations
+const kbVariations = ['', 'kb-alt', 'kb-right'];
+
 function renderSlideshow() {
     const container = document.getElementById('homepage-slideshow');
     const captionEl = document.getElementById('slideshow-caption');
 
     if (!container || slideshowImages.length === 0) return;
 
-    // Clear existing and add new images
+    // Clear existing and add new images with Ken Burns variations
     container.innerHTML = slideshowImages.map((img, i) => `
         <img src="${img.url}" alt="${img.caption || 'Food drive community photo'}"
-             class="slideshow-image ${i === 0 ? 'active' : ''}" loading="lazy">
+             class="slideshow-image ${i === 0 ? 'active' : ''} ${kbVariations[i % kbVariations.length]}"
+             loading="lazy">
     `).join('');
 
     // Set initial caption
@@ -85,13 +89,31 @@ function nextSlide() {
 
     if (images.length <= 1) return;
 
-    images[currentSlideIndex].classList.remove('active');
+    const prevIndex = currentSlideIndex;
     currentSlideIndex = (currentSlideIndex + 1) % images.length;
+
+    // Crossfade: remove active from current, add to next
+    images[prevIndex].classList.remove('active');
+    images[prevIndex].classList.add('prev');
+
+    // Reset animation by removing and re-adding class
+    images[currentSlideIndex].classList.remove(kbVariations[currentSlideIndex % kbVariations.length]);
+    void images[currentSlideIndex].offsetWidth; // Trigger reflow
+    images[currentSlideIndex].classList.add(kbVariations[currentSlideIndex % kbVariations.length]);
     images[currentSlideIndex].classList.add('active');
 
-    // Update caption
+    // Clean up prev class after transition
+    setTimeout(() => {
+        images[prevIndex].classList.remove('prev');
+    }, 1500);
+
+    // Update caption with fade
     if (captionEl) {
-        captionEl.textContent = slideshowImages[currentSlideIndex].caption || '';
+        captionEl.style.opacity = '0';
+        setTimeout(() => {
+            captionEl.textContent = slideshowImages[currentSlideIndex].caption || '';
+            captionEl.style.opacity = '1';
+        }, 300);
     }
 }
 
