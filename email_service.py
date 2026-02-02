@@ -33,10 +33,7 @@ def format_pantries_html(pantries):
         if p.get('address'):
             html += f"<span style='color: #666;'>{p['address']}</span><br>"
         if p.get('phone'):
-            html += f"Phone: {p['phone']}<br>"
-        if p.get('hours'):
-            formatted_hours = format_hours(p['hours'])
-            html += f"<em style='font-size: 0.9em; line-height: 1.5;'>Hours: {formatted_hours}</em>"
+            html += f"Phone: {p['phone']}"
         html += "</li>"
     html += "</ul>"
     return html

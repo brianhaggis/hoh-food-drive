@@ -260,10 +260,7 @@ def format_pantries_for_email(pantries):
         if p.get('address'):
             html += f"{p['address']}<br>"
         if p.get('phone'):
-            html += f"Phone: {p['phone']}<br>"
-        if p.get('hours'):
-            formatted_hours = format_hours(p['hours'])
-            html += f"<em style='font-size: 0.9em; line-height: 1.5;'>Hours: {formatted_hours}</em>"
+            html += f"Phone: {p['phone']}"
         html += "</li>"
     html += "</ul>"
     return html

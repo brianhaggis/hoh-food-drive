@@ -517,7 +517,6 @@ function openVolunteerModal(showId) {
                         <strong>${escapeHtml(p.name || 'Food Pantry')}</strong>
                         ${p.address ? `<div class="pantry-detail">${escapeHtml(p.address)}</div>` : ''}
                         ${p.phone ? `<div class="pantry-detail">${escapeHtml(p.phone)}</div>` : ''}
-                        ${p.hours ? `<div class="pantry-hours">${formatHours(p.hours)}</div>` : ''}
                     </div>
                 `).join('')}
             `;
