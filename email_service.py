@@ -10,7 +10,7 @@ def format_pantries_html(pantries):
 
     html = """
     <h3>Local Food Pantries for Donations:</h3>
-    <p><em>Collected items will be delivered to one of these local organizations:</em></p>
+    <p><em>Please reach out to one of these organizations in advance to coordinate your drop-off:</em></p>
     <ul style="margin: 10px 0; padding-left: 20px;">
     """
     for p in pantries:
