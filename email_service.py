@@ -45,13 +45,13 @@ DEFAULT_VOLUNTEER_BODY = """<!DOCTYPE html>
 <html>
 <head>
     <style>
-        body {{ font-family: 'Georgia', serif; color: #2c2c2c; line-height: 1.6; }}
-        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-        .header {{ background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #43a047 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }}
-        .content {{ background: #f1f8e9; padding: 30px; border-radius: 0 0 8px 8px; }}
-        .highlight {{ background: #fff; padding: 20px; border-left: 4px solid #2e7d32; margin: 20px 0; }}
-        h1 {{ margin: 0; font-weight: normal; }}
-        .footer {{ text-align: center; margin-top: 30px; color: #666; font-size: 14px; }}
+        body { font-family: 'Georgia', serif; color: #2c2c2c; line-height: 1.6; }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #43a047 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f1f8e9; padding: 30px; border-radius: 0 0 8px 8px; }
+        .highlight { background: #fff; padding: 20px; border-left: 4px solid #2e7d32; margin: 20px 0; }
+        h1 { margin: 0; font-weight: normal; }
+        .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -170,19 +170,20 @@ def send_volunteer_confirmation(volunteer_email, volunteer_name, show):
         # Get template (custom or default)
         template = get_volunteer_template()
 
-        # All available placeholders (provide to both subject and body for flexibility)
-        placeholders = {
-            'venue': show.venue,
-            'volunteer_name': volunteer_name,
-            'location': location,
-            'show_date': show_date,
-            'pantries_html': pantries_html,
-            'venue_history': venue_history_html
-        }
+        # Replace placeholders using simple string replacement (avoids CSS brace issues)
+        subject = template['subject']
+        subject = subject.replace('{volunteer_name}', volunteer_name)
+        subject = subject.replace('{venue}', show.venue)
+        subject = subject.replace('{location}', location)
+        subject = subject.replace('{show_date}', show_date)
 
-        # Replace placeholders
-        subject = template['subject'].format(**placeholders)
-        body = template['body_html'].format(**placeholders)
+        body = template['body_html']
+        body = body.replace('{volunteer_name}', volunteer_name)
+        body = body.replace('{venue}', show.venue)
+        body = body.replace('{location}', location)
+        body = body.replace('{show_date}', show_date)
+        body = body.replace('{pantries_html}', pantries_html)
+        body = body.replace('{venue_history}', venue_history_html)
 
         params = {
             "from": "House of Hamill Volunteers <volunteers@houseofhamill.com>",
