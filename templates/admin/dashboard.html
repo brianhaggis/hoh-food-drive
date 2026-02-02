@@ -788,7 +788,7 @@
 
             container.innerHTML = images.map(img => `
                 <div class="slideshow-item ${img.is_active ? '' : 'inactive'}">
-                    <img src="/static/uploads/${img.filename}" alt="${img.caption || 'Slideshow image'}">
+                    <img src="${img.url}" alt="${img.caption || 'Slideshow image'}">
                     <div class="slideshow-item-info">
                         <div class="slideshow-item-caption">${img.caption || '(no caption)'}</div>
                         <div class="slideshow-item-actions">

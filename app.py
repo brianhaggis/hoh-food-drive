@@ -93,8 +93,17 @@ def create_app():
                         conn.execute(text('ALTER TABLE volunteers ADD COLUMN cancelled_at TIMESTAMP'))
                         conn.commit()
 
-            # Create slideshow_images table if not exists
-            if 'slideshow_images' not in inspector.get_table_names():
+            # Check slideshow_images table columns
+            if 'slideshow_images' in inspector.get_table_names():
+                columns = [col['name'] for col in inspector.get_columns('slideshow_images')]
+                with db.engine.connect() as conn:
+                    if 'mimetype' not in columns:
+                        conn.execute(text('ALTER TABLE slideshow_images ADD COLUMN mimetype VARCHAR(100)'))
+                        conn.commit()
+                    if 'data' not in columns:
+                        conn.execute(text('ALTER TABLE slideshow_images ADD COLUMN data BYTEA'))
+                        conn.commit()
+            else:
                 db.create_all()
         except Exception as e:
             app.logger.warning(f"Migration check failed (may be OK): {e}")
@@ -562,11 +571,14 @@ def search_pantries_for_show(show_id):
 
 @app.route('/api/slideshow')
 def get_slideshow_images():
-    """Get active slideshow images for frontend."""
-    images = SlideshowImage.query.filter_by(is_active=True).order_by(SlideshowImage.display_order).all()
+    """Get active slideshow images for frontend (random order)."""
+    import random
+    images = SlideshowImage.query.filter_by(is_active=True).all()
+    if images:
+        random.shuffle(images)  # Randomize order
     return jsonify([{
         'id': img.id,
-        'url': url_for('static', filename=f'uploads/{img.filename}'),
+        'url': url_for('serve_image', image_id=img.id),
         'caption': img.caption
     } for img in images])
 
@@ -576,13 +588,16 @@ def get_slideshow_images():
 def admin_slideshow():
     """Get slideshow images for admin."""
     images = SlideshowImage.query.order_by(SlideshowImage.display_order).all()
-    return jsonify([img.to_dict() for img in images])
+    return jsonify([{
+        **img.to_dict(),
+        'url': url_for('serve_image', image_id=img.id)
+    } for img in images])
 
 
 @app.route('/admin/slideshow/upload', methods=['POST'])
 @admin_required
 def upload_slideshow_image():
-    """Upload a new slideshow image."""
+    """Upload a new slideshow image (stored in database for persistence)."""
     if 'image' not in request.files:
         return jsonify({'error': 'No file uploaded'}), 400
 
@@ -593,20 +608,23 @@ def upload_slideshow_image():
     if not allowed_file(file.filename):
         return jsonify({'error': 'Invalid file type. Use PNG, JPG, GIF, or WebP'}), 400
 
+    # Read file data
+    file_data = file.read()
+    mimetype = file.mimetype or 'image/jpeg'
+
     # Generate unique filename
     filename = secure_filename(file.filename)
     base, ext = os.path.splitext(filename)
     unique_filename = f"{base}_{int(datetime.utcnow().timestamp())}{ext}"
 
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-    file.save(filepath)
-
     # Get max display order
     max_order = db.session.query(db.func.max(SlideshowImage.display_order)).scalar() or 0
 
-    # Create database record
+    # Create database record with image data
     image = SlideshowImage(
         filename=unique_filename,
+        mimetype=mimetype,
+        data=file_data,
         caption=request.form.get('caption', ''),
         display_order=max_order + 1
     )
@@ -616,20 +634,25 @@ def upload_slideshow_image():
     return jsonify({'success': True, 'image': image.to_dict()})
 
 
+@app.route('/images/<int:image_id>')
+def serve_image(image_id):
+    """Serve an image from the database."""
+    image = SlideshowImage.query.get_or_404(image_id)
+    if not image.data:
+        return jsonify({'error': 'Image data not found'}), 404
+
+    response = Response(image.data, mimetype=image.mimetype or 'image/jpeg')
+    response.headers['Cache-Control'] = 'public, max-age=31536000'  # Cache for 1 year
+    return response
+
+
 @app.route('/admin/slideshow/<int:image_id>', methods=['DELETE'])
 @admin_required
 def delete_slideshow_image(image_id):
     """Delete a slideshow image."""
     image = SlideshowImage.query.get_or_404(image_id)
-
-    # Delete file
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], image.filename)
-    if os.path.exists(filepath):
-        os.remove(filepath)
-
     db.session.delete(image)
     db.session.commit()
-
     return jsonify({'success': True})
 
 

@@ -111,6 +111,8 @@ class SlideshowImage(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     filename = db.Column(db.String(255), nullable=False)
+    mimetype = db.Column(db.String(100), nullable=True)
+    data = db.Column(db.LargeBinary, nullable=True)  # Store image in database
     caption = db.Column(db.String(255), nullable=True)
     display_order = db.Column(db.Integer, default=0)
     is_active = db.Column(db.Boolean, default=True)
