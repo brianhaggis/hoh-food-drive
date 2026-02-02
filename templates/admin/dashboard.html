@@ -449,6 +449,26 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Add Donation -->
+            <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+                <h3 style="font-size: 16px; color: #333; margin-bottom: 15px;">Add Other Donation</h3>
+                <p style="color: #666; font-size: 13px; margin-bottom: 15px;">For mailed-in donations or food collected outside of shows.</p>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: end;">
+                    <div>
+                        <label style="font-size: 12px; color: #666; display: block; margin-bottom: 5px;">Pounds</label>
+                        <input type="number" id="donation-pounds" style="padding: 8px; width: 100px; border: 1px solid #ddd; border-radius: 4px;" placeholder="0">
+                    </div>
+                    <div style="flex: 1; min-width: 200px;">
+                        <label style="font-size: 12px; color: #666; display: block; margin-bottom: 5px;">Description (optional)</label>
+                        <input type="text" id="donation-description" style="padding: 8px; width: 100%; border: 1px solid #ddd; border-radius: 4px;" placeholder="e.g., Mailed donation from fan">
+                    </div>
+                    <button class="btn" onclick="addDonation()">Add Donation</button>
+                </div>
+
+                <!-- Donations List -->
+                <div id="donations-list" style="margin-top: 15px;"></div>
+            </div>
         </div>
 
         <!-- Sync Actions -->
@@ -818,6 +838,87 @@
                 loadStats();
             } else {
                 alert('Error saving pounds');
+            }
+        }
+
+        // Load donations list
+        function loadDonations() {
+            fetch('/admin/donations')
+                .then(r => r.json())
+                .then(donations => {
+                    const container = document.getElementById('donations-list');
+                    if (donations.length === 0) {
+                        container.innerHTML = '';
+                        return;
+                    }
+                    container.innerHTML = `
+                        <table style="width: 100%; font-size: 13px; margin-top: 10px;">
+                            <thead>
+                                <tr style="text-align: left; color: #666;">
+                                    <th style="padding: 8px 0;">Date</th>
+                                    <th>Pounds</th>
+                                    <th>Description</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${donations.map(d => `
+                                    <tr>
+                                        <td style="padding: 6px 0;">${new Date(d.date).toLocaleDateString()}</td>
+                                        <td><strong>${d.pounds} lbs</strong></td>
+                                        <td style="color: #666;">${d.description || '--'}</td>
+                                        <td><button onclick="deleteDonation(${d.id})" style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 16px;">×</button></td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                });
+        }
+        loadDonations();
+
+        // Add a donation
+        async function addDonation() {
+            const pounds = document.getElementById('donation-pounds').value;
+            const description = document.getElementById('donation-description').value;
+
+            if (!pounds || pounds <= 0) {
+                alert('Please enter pounds collected');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('pounds', pounds);
+            formData.append('description', description);
+
+            const response = await fetch('/admin/donations', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                document.getElementById('donation-pounds').value = '';
+                document.getElementById('donation-description').value = '';
+                loadDonations();
+                loadStats();
+            } else {
+                alert('Error adding donation');
+            }
+        }
+
+        // Delete a donation
+        async function deleteDonation(id) {
+            if (!confirm('Delete this donation?')) return;
+
+            const response = await fetch(`/admin/donations/${id}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                loadDonations();
+                loadStats();
+            } else {
+                alert('Error deleting donation');
             }
         }
 

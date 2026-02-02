@@ -7,7 +7,7 @@ from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from config import Config
-from models import db, Show, Volunteer, ImpactStats, SlideshowImage, EmailTemplate, SiteSettings
+from models import db, Show, Volunteer, ImpactStats, SlideshowImage, EmailTemplate, SiteSettings, Donation
 from werkzeug.utils import secure_filename
 from bandsintown import sync_shows
 from email_service import send_volunteer_confirmation, send_admin_notification
@@ -289,7 +289,12 @@ def get_stats():
     ).count()
 
     # Sum pounds from all shows
-    total_pounds = db.session.query(func.sum(Show.pounds_collected)).scalar() or 0
+    show_pounds = db.session.query(func.sum(Show.pounds_collected)).scalar() or 0
+
+    # Sum pounds from other donations (mailed in, etc.)
+    donation_pounds = db.session.query(func.sum(Donation.pounds)).scalar() or 0
+
+    total_pounds = show_pounds + donation_pounds
 
     # Auto-calculate meals at 1.2 lbs per meal
     meals = int(total_pounds / 1.2) if total_pounds > 0 else 0
@@ -508,6 +513,44 @@ def get_venue_history(venue_name):
             'pounds': s.pounds_collected
         } for s in past_shows[:5]]  # Last 5 visits
     })
+
+
+@app.route('/admin/donations')
+@admin_required
+def get_donations():
+    """Get all donations."""
+    donations = Donation.query.order_by(Donation.date.desc()).all()
+    return jsonify([d.to_dict() for d in donations])
+
+
+@app.route('/admin/donations', methods=['POST'])
+@admin_required
+def add_donation():
+    """Add a new donation."""
+    pounds = request.form.get('pounds')
+    description = request.form.get('description', '')
+
+    if not pounds:
+        return jsonify({'error': 'Pounds required'}), 400
+
+    donation = Donation(
+        pounds=int(pounds),
+        description=description
+    )
+    db.session.add(donation)
+    db.session.commit()
+
+    return jsonify({'success': True, 'donation': donation.to_dict()})
+
+
+@app.route('/admin/donations/<int:donation_id>', methods=['DELETE'])
+@admin_required
+def delete_donation(donation_id):
+    """Delete a donation."""
+    donation = Donation.query.get_or_404(donation_id)
+    db.session.delete(donation)
+    db.session.commit()
+    return jsonify({'success': True})
 
 
 @app.route('/admin/stats', methods=['POST'])

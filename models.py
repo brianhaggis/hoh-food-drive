@@ -156,3 +156,21 @@ class SiteSettings(db.Model):
             app_db.session.add(setting)
         app_db.session.commit()
         return setting
+
+
+class Donation(db.Model):
+    __tablename__ = 'donations'
+
+    id = db.Column(db.Integer, primary_key=True)
+    pounds = db.Column(db.Integer, nullable=False)
+    description = db.Column(db.String(255), nullable=True)  # e.g., "Mailed donation from fan"
+    date = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'pounds': self.pounds,
+            'description': self.description,
+            'date': self.date.isoformat() if self.date else None
+        }
