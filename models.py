@@ -38,8 +38,8 @@ class Show(db.Model):
         return []
 
     def set_pantries(self, pantries):
-        """Set pantry data from list."""
-        self.pantry_data = json.dumps(pantries) if pantries else None
+        """Set pantry data from list. Stores empty array as '[]' to prevent re-sync."""
+        self.pantry_data = json.dumps(pantries if pantries is not None else [])
 
     def to_dict(self, include_admin=False):
         data = {
