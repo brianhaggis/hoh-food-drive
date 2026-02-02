@@ -156,37 +156,34 @@ def get_venue_history_html(venue_name, current_show_id=None):
 
 def send_volunteer_confirmation(volunteer_email, volunteer_name, show):
     """Send confirmation email to volunteer with expectations and details."""
-    resend.api_key = current_app.config['RESEND_API_KEY']
-
-    show_date = show.date.strftime('%B %d, %Y at %I:%M %p') if show.date else 'TBD'
-    location = f"{show.city}, {show.state or show.country}"
-    pantries = show.get_pantries() if hasattr(show, 'get_pantries') else []
-    pantries_html = format_pantries_html(pantries)
-
-    # Get venue history for return engagements
-    venue_history_html = get_venue_history_html(show.venue, show.id)
-
-    # Get template (custom or default)
-    template = get_volunteer_template()
-
-    # Replace placeholders
-    subject = template['subject'].format(
-        venue=show.venue,
-        volunteer_name=volunteer_name,
-        location=location,
-        show_date=show_date
-    )
-
-    body = template['body_html'].format(
-        volunteer_name=volunteer_name,
-        venue=show.venue,
-        location=location,
-        show_date=show_date,
-        pantries_html=pantries_html,
-        venue_history=venue_history_html
-    )
-
     try:
+        resend.api_key = current_app.config['RESEND_API_KEY']
+
+        show_date = show.date.strftime('%B %d, %Y at %I:%M %p') if show.date else 'TBD'
+        location = f"{show.city}, {show.state or show.country}"
+        pantries = show.get_pantries() if hasattr(show, 'get_pantries') else []
+        pantries_html = format_pantries_html(pantries)
+
+        # Get venue history for return engagements
+        venue_history_html = get_venue_history_html(show.venue, show.id)
+
+        # Get template (custom or default)
+        template = get_volunteer_template()
+
+        # All available placeholders (provide to both subject and body for flexibility)
+        placeholders = {
+            'venue': show.venue,
+            'volunteer_name': volunteer_name,
+            'location': location,
+            'show_date': show_date,
+            'pantries_html': pantries_html,
+            'venue_history': venue_history_html
+        }
+
+        # Replace placeholders
+        subject = template['subject'].format(**placeholders)
+        body = template['body_html'].format(**placeholders)
+
         params = {
             "from": "House of Hamill Volunteers <volunteers@houseofhamill.com>",
             "to": [volunteer_email],

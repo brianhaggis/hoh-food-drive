@@ -229,49 +229,61 @@ def get_show(show_id):
 @app.route('/api/volunteer', methods=['POST'])
 def volunteer_signup():
     """Handle volunteer signup."""
-    data = request.get_json()
+    try:
+        data = request.get_json()
 
-    # Validate required fields
-    required_fields = ['name', 'email', 'phone', 'show_id']
-    for field in required_fields:
-        if not data.get(field):
-            return jsonify({'error': f'Missing required field: {field}'}), 400
+        if not data:
+            return jsonify({'error': 'Invalid request data'}), 400
 
-    # Get the show
-    show = Show.query.get(data['show_id'])
-    if not show:
-        return jsonify({'error': 'Show not found'}), 404
+        # Validate required fields
+        required_fields = ['name', 'email', 'phone', 'show_id']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'error': f'Missing required field: {field}'}), 400
 
-    # Check if show is excluded (unavailable for volunteers)
-    if show.excluded:
-        return jsonify({'error': 'This show is not available for volunteers'}), 400
+        # Get the show
+        show = Show.query.get(data['show_id'])
+        if not show:
+            return jsonify({'error': 'Show not found'}), 404
 
-    # Check if show already has a volunteer
-    if show.has_volunteer:
-        return jsonify({'error': 'This show already has a volunteer'}), 400
+        # Check if show is excluded (unavailable for volunteers)
+        if show.excluded:
+            return jsonify({'error': 'This show is not available for volunteers'}), 400
 
-    # Create volunteer record
-    volunteer = Volunteer(
-        name=data['name'],
-        email=data['email'],
-        phone=data['phone'],
-        show_id=show.id
-    )
-    db.session.add(volunteer)
+        # Check if show already has a volunteer
+        if show.has_volunteer:
+            return jsonify({'error': 'This show already has a volunteer'}), 400
 
-    # Update show status
-    show.has_volunteer = True
-    db.session.commit()
+        # Create volunteer record
+        volunteer = Volunteer(
+            name=data['name'],
+            email=data['email'],
+            phone=data['phone'],
+            show_id=show.id
+        )
+        db.session.add(volunteer)
 
-    # Send emails
-    send_volunteer_confirmation(volunteer.email, volunteer.name, show)
-    send_admin_notification(volunteer, show)
+        # Update show status
+        show.has_volunteer = True
+        db.session.commit()
 
-    return jsonify({
-        'success': True,
-        'message': 'Thank you for volunteering!',
-        'volunteer': volunteer.to_dict()
-    })
+        # Send emails (non-blocking - signup succeeds even if emails fail)
+        try:
+            send_volunteer_confirmation(volunteer.email, volunteer.name, show)
+            send_admin_notification(volunteer, show)
+        except Exception as e:
+            app.logger.error(f"Error sending signup emails: {e}")
+
+        return jsonify({
+            'success': True,
+            'message': 'Thank you for volunteering!',
+            'volunteer': volunteer.to_dict()
+        })
+
+    except Exception as e:
+        app.logger.error(f"Volunteer signup error: {e}")
+        db.session.rollback()
+        return jsonify({'error': 'An unexpected error occurred. Please try again.'}), 500
 
 
 @app.route('/api/stats')
