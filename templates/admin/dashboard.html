@@ -295,6 +295,14 @@
         .note-editable {
             background: white;
         }
+        /* Highlight shows needing pound reporting */
+        .needs-reporting {
+            background: #fff8e1 !important;
+        }
+        .needs-reporting td:first-child {
+            border-left: 3px solid #ff9800;
+        }
+
         /* Responsive */
         @media (max-width: 1024px) {
             .admin-container {
@@ -394,21 +402,6 @@
             {% endif %}
         {% endwith %}
 
-        <!-- Report Pounds Dialog (shown when there's a recent show needing reporting) -->
-        <div id="report-pounds-card" class="card" style="display: none; border: 2px solid #2e7d32; background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);">
-            <h2 style="color: #1b5e20;">Report Food Collection</h2>
-            <p id="report-pounds-info" style="margin-bottom: 15px;"></p>
-            <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
-                <div>
-                    <label style="font-weight: 600; display: block; margin-bottom: 5px;">Pounds Collected:</label>
-                    <input type="number" id="report-pounds-input" style="padding: 12px; font-size: 18px; width: 150px; border: 2px solid #2e7d32; border-radius: 6px;" placeholder="0">
-                </div>
-                <button class="btn" onclick="submitReportPounds()" style="margin-top: 20px;">Save &amp; Continue</button>
-                <button class="btn btn-secondary" onclick="skipReportPounds()" style="margin-top: 20px;">Skip for Now</button>
-            </div>
-            <input type="hidden" id="report-pounds-show-id">
-        </div>
-
         <!-- Impact Stats -->
         <div class="card">
             <h2>Impact Statistics</h2>
@@ -469,6 +462,96 @@
                 <!-- Donations List -->
                 <div id="donations-list" style="margin-top: 15px;"></div>
             </div>
+        </div>
+
+        <!-- Food Collection Tracking -->
+        <div class="card">
+            <h2>Food Collection Tracking</h2>
+            <p style="color: #666; margin-bottom: 15px;">Track pounds collected at each show. Upcoming shows become available for reporting on the day of the show.</p>
+
+            <table class="show-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Venue</th>
+                        <th>Location</th>
+                        <th>Status</th>
+                        <th>Pounds Collected</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Upcoming shows (greyed out until day-of) -->
+                    {% for show in shows %}
+                    {% if not show.excluded %}
+                    <tr class="upcoming-show-row" data-show-date="{{ show.date.strftime('%Y-%m-%d') }}" style="background: #f9f9f9;">
+                        <td style="color: #666;">{{ show.date.strftime('%b %d, %Y') }}</td>
+                        <td style="color: #666;">{{ show.venue }}</td>
+                        <td style="color: #666;">{{ show.city }}, {{ show.state or show.country }}</td>
+                        <td>
+                            {% if show.has_volunteer %}
+                                <span class="badge badge-success">Has Volunteer</span>
+                            {% else %}
+                                <span class="badge badge-warning">Needs Volunteer</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <input type="number"
+                                   class="pounds-input upcoming-pounds"
+                                   data-show-id="{{ show.id }}"
+                                   value="{{ show.pounds_collected or '' }}"
+                                   placeholder="--"
+                                   onchange="updateShowPounds({{ show.id }}, this.value)"
+                                   style="width: 80px; padding: 6px; border: 1px solid #ddd; border-radius: 4px; background: #eee; color: #999;"
+                                   disabled>
+                            <span class="pounds-saved" id="saved-{{ show.id }}" style="color: #2e7d32; margin-left: 5px; display: none;">✓</span>
+                            <span class="upcoming-note" style="font-size: 11px; color: #999; display: block;">Available {{ show.date.strftime('%b %d') }}</span>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+
+                    <!-- Divider row if there are both upcoming and past shows -->
+                    {% if shows and past_shows %}
+                    <tr>
+                        <td colspan="5" style="background: #e8f5e9; padding: 8px; font-weight: 600; color: #2e7d32; text-align: center;">
+                            Past Shows
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    <!-- Past shows (editable) -->
+                    {% for show in past_shows %}
+                    <tr {% if show.excluded %}style="opacity: 0.5;"{% endif %} class="{% if not show.excluded and show.has_volunteer and not show.pounds_collected %}needs-reporting{% endif %}">
+                        <td>{{ show.date.strftime('%b %d, %Y') }}</td>
+                        <td>{{ show.venue }}</td>
+                        <td>{{ show.city }}, {{ show.state or show.country }}</td>
+                        <td>
+                            {% if show.excluded %}
+                                <span class="badge badge-secondary">Excluded</span>
+                            {% elif show.has_volunteer %}
+                                <span class="badge badge-success">Had Volunteer</span>
+                            {% else %}
+                                <span class="badge badge-warning">No Volunteer</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if not show.excluded %}
+                            <input type="number"
+                                   class="pounds-input"
+                                   data-show-id="{{ show.id }}"
+                                   value="{{ show.pounds_collected or '' }}"
+                                   placeholder="--"
+                                   onchange="updateShowPounds({{ show.id }}, this.value)"
+                                   style="width: 80px; padding: 6px; border: 1px solid #ddd; border-radius: 4px; {% if show.has_volunteer and not show.pounds_collected %}border-color: #ff9800; background: #fff8e1;{% endif %}">
+                            <span class="pounds-saved" id="saved-{{ show.id }}" style="color: #2e7d32; margin-left: 5px; display: none;">✓</span>
+                            {% else %}
+                            <span style="color: #999;">--</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
 
         <!-- Sync Actions -->
@@ -539,55 +622,6 @@
             </table>
         </div>
 
-        <!-- Past Shows (for pound reporting) -->
-        <div class="card">
-            <h2>Past Shows - Food Collection Reporting</h2>
-            <p style="color: #666; margin-bottom: 15px;">Enter pounds collected at each past show. This data is used for impact statistics and return venue info.</p>
-
-            <table class="show-table">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Venue</th>
-                        <th>Location</th>
-                        <th>Status</th>
-                        <th>Pounds Collected</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for show in past_shows %}
-                    <tr {% if show.excluded %}style="opacity: 0.5;"{% endif %}>
-                        <td>{{ show.date.strftime('%b %d, %Y') }}</td>
-                        <td>{{ show.venue }}</td>
-                        <td>{{ show.city }}, {{ show.state or show.country }}</td>
-                        <td>
-                            {% if show.excluded %}
-                                <span class="badge badge-secondary">Excluded</span>
-                            {% elif show.has_volunteer %}
-                                <span class="badge badge-success">Had Volunteer</span>
-                            {% else %}
-                                <span class="badge badge-warning">No Volunteer</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if not show.excluded %}
-                            <input type="number"
-                                   class="pounds-input"
-                                   data-show-id="{{ show.id }}"
-                                   value="{{ show.pounds_collected or '' }}"
-                                   placeholder="--"
-                                   onchange="updateShowPounds({{ show.id }}, this.value)"
-                                   style="width: 80px; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
-                            <span class="pounds-saved" id="saved-{{ show.id }}" style="color: #2e7d32; margin-left: 5px; display: none;">✓</span>
-                            {% else %}
-                            <span style="color: #999;">--</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
 
         <!-- Slideshow Images -->
         <div class="card">
@@ -770,55 +804,35 @@
         }
         loadStats();
 
-        // Check for recent show needing pound reporting
-        fetch('/admin/shows/recent-needing-pounds')
-            .then(r => r.json())
-            .then(data => {
-                if (data && data.id) {
-                    const card = document.getElementById('report-pounds-card');
-                    const info = document.getElementById('report-pounds-info');
-                    const date = new Date(data.date).toLocaleDateString('en-US', {
-                        weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
-                    });
-                    info.innerHTML = `<strong>${data.venue}</strong> in ${data.city}, ${data.state}<br>Show date: ${date}`;
-                    document.getElementById('report-pounds-show-id').value = data.id;
-                    card.style.display = 'block';
+        // Check upcoming shows and enable input if it's the day of the show (or after)
+        function checkUpcomingShows() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            document.querySelectorAll('.upcoming-show-row').forEach(row => {
+                const showDateStr = row.dataset.showDate;
+                const showDate = new Date(showDateStr + 'T00:00:00');
+
+                if (showDate <= today) {
+                    // It's the day of the show or past - enable the input
+                    const input = row.querySelector('.upcoming-pounds');
+                    const note = row.querySelector('.upcoming-note');
+                    if (input) {
+                        input.disabled = false;
+                        input.style.background = '#fff8e1';
+                        input.style.borderColor = '#ff9800';
+                        input.style.color = '#333';
+                    }
+                    if (note) {
+                        note.textContent = 'Ready to report!';
+                        note.style.color = '#ff9800';
+                        note.style.fontWeight = '600';
+                    }
+                    row.style.background = '#fffde7';
                 }
             });
-
-        // Submit pound report from the top dialog
-        async function submitReportPounds() {
-            const showId = document.getElementById('report-pounds-show-id').value;
-            const pounds = document.getElementById('report-pounds-input').value;
-
-            if (!pounds) {
-                alert('Please enter the pounds collected');
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('pounds', pounds);
-
-            const response = await fetch(`/admin/shows/${showId}/pounds`, {
-                method: 'POST',
-                body: formData
-            });
-
-            if (response.ok) {
-                document.getElementById('report-pounds-card').style.display = 'none';
-                loadStats();
-                // Update the input in the past shows table if visible
-                const input = document.querySelector(`input[data-show-id="${showId}"]`);
-                if (input) input.value = pounds;
-            } else {
-                alert('Error saving pounds');
-            }
         }
-
-        // Skip pound reporting for now
-        function skipReportPounds() {
-            document.getElementById('report-pounds-card').style.display = 'none';
-        }
+        checkUpcomingShows();
 
         // Update pounds for a show from the table
         async function updateShowPounds(showId, pounds) {
