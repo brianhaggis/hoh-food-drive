@@ -138,12 +138,17 @@ img {
 }
 
 .nav-admin {
-    font-size: 0.8rem;
-    opacity: 0.5;
+    background: var(--color-primary);
+    color: white !important;
+    padding: 8px 16px;
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    font-weight: 600;
 }
 
 .nav-admin:hover {
-    opacity: 1;
+    background: var(--color-primary-dark);
+    color: white !important;
 }
 
 .nav-admin::after {
