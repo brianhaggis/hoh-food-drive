@@ -121,6 +121,20 @@ def create_app():
             db.session.add(stats)
             db.session.commit()
 
+        # Add {venue_history} placeholder to custom email template if missing
+        template = EmailTemplate.query.filter_by(name='volunteer_confirmation').first()
+        if template and '{venue_history}' not in template.body_html:
+            # Insert after show details div (look for </div> after show_date)
+            import re
+            # Find the show details section and insert venue_history after it
+            pattern = r'(\{show_date\}.*?</div>)'
+            replacement = r'\1\n\n            {venue_history}'
+            new_body = re.sub(pattern, replacement, template.body_html, count=1, flags=re.DOTALL)
+            if new_body != template.body_html:
+                template.body_html = new_body
+                db.session.commit()
+                app.logger.info("Added {venue_history} placeholder to email template")
+
     return app
 
 
