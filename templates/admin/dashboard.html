@@ -480,9 +480,9 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- Upcoming shows (greyed out until day-of) -->
-                    {% for show in shows %}
-                    {% if not show.excluded %}
+                    <!-- Upcoming shows (next 5, greyed out until day-of) -->
+                    {% for show in shows if not show.excluded %}
+                    {% if loop.index <= 5 %}
                     <tr class="upcoming-show-row" data-show-date="{{ show.date.strftime('%Y-%m-%d') }}" style="background: #f9f9f9;">
                         <td style="color: #666;">{{ show.date.strftime('%b %d, %Y') }}</td>
                         <td style="color: #666;">{{ show.venue }}</td>
@@ -509,6 +509,14 @@
                     </tr>
                     {% endif %}
                     {% endfor %}
+                    {% set non_excluded_count = shows|rejectattr('excluded')|list|length %}
+                    {% if non_excluded_count > 5 %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: #999; font-size: 12px; padding: 8px;">
+                            + {{ non_excluded_count - 5 }} more upcoming shows (see Manage Shows below)
+                        </td>
+                    </tr>
+                    {% endif %}
 
                     <!-- Divider row if there are both upcoming and past shows -->
                     {% if shows and past_shows %}
@@ -519,8 +527,9 @@
                     </tr>
                     {% endif %}
 
-                    <!-- Past shows (editable) -->
+                    <!-- Past shows (last 10, editable) -->
                     {% for show in past_shows %}
+                    {% if loop.index <= 10 %}
                     <tr {% if show.excluded %}style="opacity: 0.5;"{% endif %} class="{% if not show.excluded and show.has_volunteer and not show.pounds_collected %}needs-reporting{% endif %}">
                         <td>{{ show.date.strftime('%b %d, %Y') }}</td>
                         <td>{{ show.venue }}</td>
@@ -549,7 +558,15 @@
                             {% endif %}
                         </td>
                     </tr>
+                    {% endif %}
                     {% endfor %}
+                    {% if past_shows|length > 10 %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: #999; font-size: 12px; padding: 8px;">
+                            Showing last 10 of {{ past_shows|length }} past shows
+                        </td>
+                    </tr>
+                    {% endif %}
                 </tbody>
             </table>
         </div>
