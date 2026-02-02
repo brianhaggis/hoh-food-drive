@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initMap();
     fetchShows();
     fetchStats();
+    fetchSettings();
     initParallax();
     initMobileNav();
 
@@ -21,6 +22,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const yearEl = document.getElementById('current-year');
     if (yearEl) yearEl.textContent = new Date().getFullYear();
 });
+
+// Fetch site settings and apply them
+async function fetchSettings() {
+    try {
+        const response = await fetch('/api/settings');
+        const settings = await response.json();
+
+        // Hide impact section if disabled
+        if (!settings.show_impact) {
+            const impactSection = document.querySelector('.impact-section');
+            if (impactSection) {
+                impactSection.style.display = 'none';
+            }
+        }
+    } catch (error) {
+        console.error('Error fetching settings:', error);
+    }
+}
 
 // Mobile navigation toggle
 function initMobileNav() {

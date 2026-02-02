@@ -334,6 +334,46 @@
                 grid-template-columns: 1fr;
             }
         }
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .3s;
+            border-radius: 26px;
+        }
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: #2e7d32;
+        }
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(24px);
+        }
     </style>
 </head>
 <body>
@@ -357,6 +397,13 @@
         <!-- Impact Stats -->
         <div class="card">
             <h2>Impact Statistics</h2>
+            <div class="setting-toggle" style="margin-bottom: 20px; padding: 12px; background: #f5f5f5; border-radius: 6px; display: flex; align-items: center; gap: 12px;">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="show-impact-toggle" onchange="toggleImpactSection(this.checked)">
+                    <span class="toggle-slider"></span>
+                </label>
+                <span>Show Impact section on public site</span>
+            </div>
             <form method="POST" action="{{ url_for('update_stats') }}">
                 <div class="stats-grid">
                     <div class="stat-input">
@@ -622,6 +669,29 @@
             .then(data => {
                 document.getElementById('shows-participated').textContent = data.shows_participated;
             });
+
+        // Load current settings
+        fetch('/api/settings')
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('show-impact-toggle').checked = data.show_impact;
+            });
+
+        // Toggle impact section visibility
+        async function toggleImpactSection(show) {
+            const formData = new FormData();
+            formData.append('value', show ? 'true' : 'false');
+
+            const response = await fetch('/admin/settings/show_impact', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                alert('Error updating setting');
+                document.getElementById('show-impact-toggle').checked = !show;
+            }
+        }
 
         async function toggleShow(showId, currentlyExcluded) {
             let reason = '';

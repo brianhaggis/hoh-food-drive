@@ -126,3 +126,31 @@ class SlideshowImage(db.Model):
             'display_order': self.display_order,
             'is_active': self.is_active
         }
+
+
+class SiteSettings(db.Model):
+    __tablename__ = 'site_settings'
+
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(50), unique=True, nullable=False)
+    value = db.Column(db.String(255), nullable=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    @staticmethod
+    def get(key, default=None):
+        """Get a setting value by key."""
+        setting = SiteSettings.query.filter_by(key=key).first()
+        return setting.value if setting else default
+
+    @staticmethod
+    def set(key, value):
+        """Set a setting value."""
+        from app import db as app_db
+        setting = SiteSettings.query.filter_by(key=key).first()
+        if setting:
+            setting.value = value
+        else:
+            setting = SiteSettings(key=key, value=value)
+            app_db.session.add(setting)
+        app_db.session.commit()
+        return setting

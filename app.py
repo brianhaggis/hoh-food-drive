@@ -7,7 +7,7 @@ from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from config import Config
-from models import db, Show, Volunteer, ImpactStats, SlideshowImage, EmailTemplate
+from models import db, Show, Volunteer, ImpactStats, SlideshowImage, EmailTemplate, SiteSettings
 from werkzeug.utils import secure_filename
 from bandsintown import sync_shows
 from email_service import send_volunteer_confirmation, send_admin_notification
@@ -281,6 +281,14 @@ def get_stats():
         'meals_provided': 0,
         'shows_participated': shows_participated,
         'volunteers': 0
+    })
+
+
+@app.route('/api/settings')
+def get_settings():
+    """Get public site settings."""
+    return jsonify({
+        'show_impact': SiteSettings.get('show_impact', 'true') == 'true'
     })
 
 
@@ -732,6 +740,25 @@ def delete_email_template(name):
         db.session.delete(template)
         db.session.commit()
     return jsonify({'success': True})
+
+
+@app.route('/admin/settings/<key>', methods=['POST'])
+@admin_required
+def update_setting(key):
+    """Update a site setting."""
+    allowed_keys = ['show_impact']
+    if key not in allowed_keys:
+        return jsonify({'error': 'Invalid setting'}), 400
+
+    value = request.form.get('value', 'true')
+    setting = SiteSettings.query.filter_by(key=key).first()
+    if setting:
+        setting.value = value
+    else:
+        setting = SiteSettings(key=key, value=value)
+        db.session.add(setting)
+    db.session.commit()
+    return jsonify({'success': True, 'value': value})
 
 
 if __name__ == '__main__':
