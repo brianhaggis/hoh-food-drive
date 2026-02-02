@@ -394,6 +394,21 @@
             {% endif %}
         {% endwith %}
 
+        <!-- Report Pounds Dialog (shown when there's a recent show needing reporting) -->
+        <div id="report-pounds-card" class="card" style="display: none; border: 2px solid #2e7d32; background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);">
+            <h2 style="color: #1b5e20;">Report Food Collection</h2>
+            <p id="report-pounds-info" style="margin-bottom: 15px;"></p>
+            <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                <div>
+                    <label style="font-weight: 600; display: block; margin-bottom: 5px;">Pounds Collected:</label>
+                    <input type="number" id="report-pounds-input" style="padding: 12px; font-size: 18px; width: 150px; border: 2px solid #2e7d32; border-radius: 6px;" placeholder="0">
+                </div>
+                <button class="btn" onclick="submitReportPounds()" style="margin-top: 20px;">Save &amp; Continue</button>
+                <button class="btn btn-secondary" onclick="skipReportPounds()" style="margin-top: 20px;">Skip for Now</button>
+            </div>
+            <input type="hidden" id="report-pounds-show-id">
+        </div>
+
         <!-- Impact Stats -->
         <div class="card">
             <h2>Impact Statistics</h2>
@@ -404,29 +419,36 @@
                 </label>
                 <span>Show Impact section on public site</span>
             </div>
-            <form method="POST" action="{{ url_for('update_stats') }}">
-                <div class="stats-grid">
-                    <div class="stat-input">
-                        <label>Pounds Collected</label>
-                        <input type="number" name="pounds_collected" id="pounds-input" value="{{ stats.pounds_collected if stats else 0 }}" oninput="updateMealsCalculation()">
-                    </div>
-                    <div class="stat-input">
-                        <label>Meals Provided</label>
-                        <div class="stat-display">
-                            <span id="meals-provided">--</span>
-                            <small>Auto-calculated (1.2 lbs per meal)</small>
-                        </div>
-                    </div>
-                    <div class="stat-input">
-                        <label>Shows Participated</label>
-                        <div class="stat-display">
-                            <span id="shows-participated">--</span>
-                            <small>Auto-calculated from past shows</small>
-                        </div>
+            <div class="stats-grid">
+                <div class="stat-input">
+                    <label>Total Pounds Collected</label>
+                    <div class="stat-display">
+                        <span id="total-pounds" style="font-size: 24px; color: #2e7d32; font-weight: bold;">--</span>
+                        <small>Sum of all shows</small>
                     </div>
                 </div>
-                <button type="submit" class="btn">Update Stats</button>
-            </form>
+                <div class="stat-input">
+                    <label>Meals Provided</label>
+                    <div class="stat-display">
+                        <span id="meals-provided" style="font-size: 24px; color: #2e7d32; font-weight: bold;">--</span>
+                        <small>Auto-calculated (1.2 lbs per meal)</small>
+                    </div>
+                </div>
+                <div class="stat-input">
+                    <label>Shows Participated</label>
+                    <div class="stat-display">
+                        <span id="shows-participated" style="font-size: 24px; color: #2e7d32; font-weight: bold;">--</span>
+                        <small>Past shows with volunteers</small>
+                    </div>
+                </div>
+                <div class="stat-input">
+                    <label>Active Volunteers</label>
+                    <div class="stat-display">
+                        <span id="total-volunteers" style="font-size: 24px; color: #2e7d32; font-weight: bold;">--</span>
+                        <small>Total signups</small>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Sync Actions -->
@@ -490,6 +512,56 @@
                                     Pantries
                                 </button>
                             </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Past Shows (for pound reporting) -->
+        <div class="card">
+            <h2>Past Shows - Food Collection Reporting</h2>
+            <p style="color: #666; margin-bottom: 15px;">Enter pounds collected at each past show. This data is used for impact statistics and return venue info.</p>
+
+            <table class="show-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Venue</th>
+                        <th>Location</th>
+                        <th>Status</th>
+                        <th>Pounds Collected</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for show in past_shows %}
+                    <tr {% if show.excluded %}style="opacity: 0.5;"{% endif %}>
+                        <td>{{ show.date.strftime('%b %d, %Y') }}</td>
+                        <td>{{ show.venue }}</td>
+                        <td>{{ show.city }}, {{ show.state or show.country }}</td>
+                        <td>
+                            {% if show.excluded %}
+                                <span class="badge badge-secondary">Excluded</span>
+                            {% elif show.has_volunteer %}
+                                <span class="badge badge-success">Had Volunteer</span>
+                            {% else %}
+                                <span class="badge badge-warning">No Volunteer</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if not show.excluded %}
+                            <input type="number"
+                                   class="pounds-input"
+                                   data-show-id="{{ show.id }}"
+                                   value="{{ show.pounds_collected or '' }}"
+                                   placeholder="--"
+                                   onchange="updateShowPounds({{ show.id }}, this.value)"
+                                   style="width: 80px; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                            <span class="pounds-saved" id="saved-{{ show.id }}" style="color: #2e7d32; margin-left: 5px; display: none;">✓</span>
+                            {% else %}
+                            <span style="color: #999;">--</span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -665,23 +737,89 @@
         let currentShowId = null;
         let currentPantries = [];
 
-        // Fetch stats (shows participated and meals)
-        fetch('/api/stats')
+        // Load all stats
+        function loadStats() {
+            fetch('/api/stats')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('total-pounds').textContent = data.pounds_collected.toLocaleString();
+                    document.getElementById('meals-provided').textContent = data.meals_provided.toLocaleString();
+                    document.getElementById('shows-participated').textContent = data.shows_participated;
+                    document.getElementById('total-volunteers').textContent = data.volunteers;
+                });
+        }
+        loadStats();
+
+        // Check for recent show needing pound reporting
+        fetch('/admin/shows/recent-needing-pounds')
             .then(r => r.json())
             .then(data => {
-                document.getElementById('shows-participated').textContent = data.shows_participated;
-                document.getElementById('meals-provided').textContent = data.meals_provided.toLocaleString();
+                if (data && data.id) {
+                    const card = document.getElementById('report-pounds-card');
+                    const info = document.getElementById('report-pounds-info');
+                    const date = new Date(data.date).toLocaleDateString('en-US', {
+                        weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+                    });
+                    info.innerHTML = `<strong>${data.venue}</strong> in ${data.city}, ${data.state}<br>Show date: ${date}`;
+                    document.getElementById('report-pounds-show-id').value = data.id;
+                    card.style.display = 'block';
+                }
             });
 
-        // Update meals calculation when pounds change (1.2 lbs per meal)
-        function updateMealsCalculation() {
-            const pounds = parseInt(document.getElementById('pounds-input').value) || 0;
-            const meals = Math.floor(pounds / 1.2);
-            document.getElementById('meals-provided').textContent = meals.toLocaleString();
+        // Submit pound report from the top dialog
+        async function submitReportPounds() {
+            const showId = document.getElementById('report-pounds-show-id').value;
+            const pounds = document.getElementById('report-pounds-input').value;
+
+            if (!pounds) {
+                alert('Please enter the pounds collected');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('pounds', pounds);
+
+            const response = await fetch(`/admin/shows/${showId}/pounds`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                document.getElementById('report-pounds-card').style.display = 'none';
+                loadStats();
+                // Update the input in the past shows table if visible
+                const input = document.querySelector(`input[data-show-id="${showId}"]`);
+                if (input) input.value = pounds;
+            } else {
+                alert('Error saving pounds');
+            }
         }
 
-        // Initial calculation on page load
-        updateMealsCalculation();
+        // Skip pound reporting for now
+        function skipReportPounds() {
+            document.getElementById('report-pounds-card').style.display = 'none';
+        }
+
+        // Update pounds for a show from the table
+        async function updateShowPounds(showId, pounds) {
+            const formData = new FormData();
+            formData.append('pounds', pounds);
+
+            const response = await fetch(`/admin/shows/${showId}/pounds`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                // Show saved indicator
+                const saved = document.getElementById(`saved-${showId}`);
+                saved.style.display = 'inline';
+                setTimeout(() => saved.style.display = 'none', 2000);
+                loadStats();
+            } else {
+                alert('Error saving pounds');
+            }
+        }
 
         // Load current settings
         fetch('/api/settings')

@@ -20,6 +20,7 @@ class Show(db.Model):
     has_volunteer = db.Column(db.Boolean, default=False)
     excluded = db.Column(db.Boolean, default=False)  # Exclude from food drive (festivals, opening slots)
     exclude_reason = db.Column(db.String(200), nullable=True)  # Why excluded
+    pounds_collected = db.Column(db.Integer, nullable=True)  # Pounds of food collected at this show
     ticket_url = db.Column(db.String(500), nullable=True)
     pantry_data = db.Column(db.Text, nullable=True)  # JSON string of nearby food pantries
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -58,6 +59,7 @@ class Show(db.Model):
         }
         if include_admin:
             data['exclude_reason'] = self.exclude_reason
+            data['pounds_collected'] = self.pounds_collected
         return data
 
 

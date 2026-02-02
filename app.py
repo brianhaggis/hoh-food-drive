@@ -81,6 +81,9 @@ def create_app():
                     if 'exclude_reason' not in columns:
                         conn.execute(text('ALTER TABLE shows ADD COLUMN exclude_reason VARCHAR(200)'))
                         conn.commit()
+                    if 'pounds_collected' not in columns:
+                        conn.execute(text('ALTER TABLE shows ADD COLUMN pounds_collected INTEGER'))
+                        conn.commit()
 
             # Check volunteers table columns
             if 'volunteers' in inspector.get_table_names():
@@ -259,22 +262,26 @@ def volunteer_signup():
 
 @app.route('/api/stats')
 def get_stats():
-    """Get impact statistics."""
-    stats = ImpactStats.query.first()
+    """Get impact statistics - all auto-calculated from show data."""
+    from sqlalchemy import func
+
     volunteer_count = Volunteer.query.filter_by(cancelled=False).count()
 
-    # Auto-calculate shows participated (past non-excluded shows)
+    # Auto-calculate shows participated (past non-excluded shows with volunteers)
     shows_participated = Show.query.filter(
         Show.date < datetime.utcnow(),
-        Show.excluded == False
+        Show.excluded == False,
+        Show.has_volunteer == True
     ).count()
 
-    pounds = stats.pounds_collected if stats else 0
+    # Sum pounds from all shows
+    total_pounds = db.session.query(func.sum(Show.pounds_collected)).scalar() or 0
+
     # Auto-calculate meals at 1.2 lbs per meal
-    meals = int(pounds / 1.2) if pounds > 0 else 0
+    meals = int(total_pounds / 1.2) if total_pounds > 0 else 0
 
     return jsonify({
-        'pounds_collected': pounds,
+        'pounds_collected': total_pounds,
         'meals_provided': meals,
         'shows_participated': shows_participated,
         'volunteers': volunteer_count
@@ -366,11 +373,14 @@ def admin_logout():
 @admin_required
 def admin_dashboard():
     """Admin dashboard."""
+    # Upcoming shows
     shows = Show.query.filter(Show.date >= datetime.utcnow()).order_by(Show.date).all()
+    # Past shows (last 20, most recent first)
+    past_shows = Show.query.filter(Show.date < datetime.utcnow()).order_by(Show.date.desc()).limit(20).all()
     stats = ImpactStats.query.first()
     # Only show active (non-cancelled) volunteers
     volunteers = Volunteer.query.filter_by(cancelled=False).order_by(Volunteer.signup_date.desc()).limit(10).all()
-    return render_template('admin/dashboard.html', shows=shows, stats=stats, volunteers=volunteers)
+    return render_template('admin/dashboard.html', shows=shows, past_shows=past_shows, stats=stats, volunteers=volunteers)
 
 
 @app.route('/admin/volunteers/search')
@@ -427,6 +437,63 @@ def toggle_show(show_id):
     show.exclude_reason = request.form.get('reason', '') if show.excluded else None
     db.session.commit()
     return jsonify({'success': True, 'excluded': show.excluded})
+
+
+@app.route('/admin/shows/<int:show_id>/pounds', methods=['POST'])
+@admin_required
+def update_show_pounds(show_id):
+    """Update pounds collected for a show."""
+    show = Show.query.get_or_404(show_id)
+    pounds = request.form.get('pounds')
+    show.pounds_collected = int(pounds) if pounds and pounds.strip() else None
+    db.session.commit()
+    return jsonify({'success': True, 'pounds_collected': show.pounds_collected})
+
+
+@app.route('/admin/shows/recent-needing-pounds')
+@admin_required
+def get_recent_show_needing_pounds():
+    """Get the most recent past show that needs pound reporting."""
+    show = Show.query.filter(
+        Show.date < datetime.utcnow(),
+        Show.excluded == False,
+        Show.has_volunteer == True,
+        Show.pounds_collected.is_(None)
+    ).order_by(Show.date.desc()).first()
+
+    if show:
+        return jsonify({
+            'id': show.id,
+            'venue': show.venue,
+            'city': show.city,
+            'state': show.state,
+            'date': show.date.isoformat()
+        })
+    return jsonify(None)
+
+
+@app.route('/api/venue-history/<venue_name>')
+def get_venue_history(venue_name):
+    """Get past collection history for a venue."""
+    past_shows = Show.query.filter(
+        Show.venue == venue_name,
+        Show.date < datetime.utcnow(),
+        Show.pounds_collected.isnot(None)
+    ).order_by(Show.date.desc()).all()
+
+    if not past_shows:
+        return jsonify({'has_history': False})
+
+    total_pounds = sum(s.pounds_collected for s in past_shows)
+    return jsonify({
+        'has_history': True,
+        'visit_count': len(past_shows),
+        'total_pounds': total_pounds,
+        'shows': [{
+            'date': s.date.strftime('%B %Y'),
+            'pounds': s.pounds_collected
+        } for s in past_shows[:5]]  # Last 5 visits
+    })
 
 
 @app.route('/admin/stats', methods=['POST'])

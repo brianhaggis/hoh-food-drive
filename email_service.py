@@ -70,6 +70,8 @@ DEFAULT_VOLUNTEER_BODY = """<!DOCTYPE html>
                 <strong>Date:</strong> {show_date}
             </div>
 
+            {venue_history}
+
             <h3>What You'll Get:</h3>
             <ul>
                 <li><strong>Two free tickets</strong> to enjoy the show</li>
@@ -121,6 +123,37 @@ def get_volunteer_template():
     return {'subject': DEFAULT_VOLUNTEER_SUBJECT, 'body_html': DEFAULT_VOLUNTEER_BODY}
 
 
+def get_venue_history_html(venue_name, current_show_id=None):
+    """Get formatted HTML for past collections at this venue."""
+    from models import Show
+    from datetime import datetime
+
+    # Find past shows at this venue with recorded pounds
+    query = Show.query.filter(
+        Show.venue == venue_name,
+        Show.date < datetime.utcnow(),
+        Show.pounds_collected.isnot(None)
+    )
+    if current_show_id:
+        query = query.filter(Show.id != current_show_id)
+
+    past_shows = query.order_by(Show.date.desc()).all()
+
+    if not past_shows:
+        return ''
+
+    total_pounds = sum(s.pounds_collected for s in past_shows)
+    total_meals = int(total_pounds / 1.2)
+
+    html = f"""
+    <div style="background: #e8f5e9; border-left: 4px solid #2e7d32; padding: 15px; margin: 20px 0; border-radius: 0 8px 8px 0;">
+        <strong style="color: #1b5e20;">Return Engagement!</strong><br>
+        <p style="margin: 10px 0 0 0;">We've collected food at {past_shows[0].venue} before! In our previous {len(past_shows)} visit{'s' if len(past_shows) > 1 else ''}, we collected <strong>{total_pounds:,} lbs</strong> of food ({total_meals:,} meals).</p>
+    </div>
+    """
+    return html
+
+
 def send_volunteer_confirmation(volunteer_email, volunteer_name, show):
     """Send confirmation email to volunteer with expectations and details."""
     resend.api_key = current_app.config['RESEND_API_KEY']
@@ -129,6 +162,9 @@ def send_volunteer_confirmation(volunteer_email, volunteer_name, show):
     location = f"{show.city}, {show.state or show.country}"
     pantries = show.get_pantries() if hasattr(show, 'get_pantries') else []
     pantries_html = format_pantries_html(pantries)
+
+    # Get venue history for return engagements
+    venue_history_html = get_venue_history_html(show.venue, show.id)
 
     # Get template (custom or default)
     template = get_volunteer_template()
@@ -146,7 +182,8 @@ def send_volunteer_confirmation(volunteer_email, volunteer_name, show):
         venue=show.venue,
         location=location,
         show_date=show_date,
-        pantries_html=pantries_html
+        pantries_html=pantries_html,
+        venue_history=venue_history_html
     )
 
     try:
@@ -174,6 +211,9 @@ def send_admin_notification(volunteer, show):
     # Get pantry info
     pantries = show.get_pantries() if hasattr(show, 'get_pantries') else []
     pantries_html = format_pantries_html(pantries) if pantries else "<p><em>No food pantries have been added for this show yet.</em></p>"
+
+    # Get venue history for return engagements
+    venue_history_html = get_venue_history_html(show.venue, show.id)
 
     html_content = f"""<!DOCTYPE html>
 <html>
@@ -215,6 +255,8 @@ def send_admin_notification(volunteer, show):
                     <tr><td>Date</td><td>{show_date}</td></tr>
                 </table>
             </div>
+
+            {venue_history_html}
 
             <div class="info-box">
                 <h2>Food Pantries for This Show</h2>
