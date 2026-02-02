@@ -44,6 +44,65 @@ def is_secular(name):
     return True
 
 
+def extract_hours(description):
+    """
+    Extract and clean hours from a pantry description.
+    Returns clean, formatted hours string or empty string if not found.
+    """
+    if not description:
+        return ''
+
+    # Normalize whitespace and newlines
+    text = re.sub(r'\s+', ' ', description).strip()
+
+    # Pattern to match day ranges or individual days with times
+    # Captures: "Monday - Friday 8:30am to 3:30pm" or "Tuesday and Thursday 10:00 am - 3:00 pm"
+    hours_pattern = r'''
+        (
+            (?:Mon(?:day)?|Tue(?:sday)?|Wed(?:nesday)?|Thu(?:rsday)?|Fri(?:day)?|Sat(?:urday)?|Sun(?:day)?)
+            (?:\s*[-–—,&]\s*|\s+(?:and|to|thru|through)\s+)?
+            (?:Mon(?:day)?|Tue(?:sday)?|Wed(?:nesday)?|Thu(?:rsday)?|Fri(?:day)?|Sat(?:urday)?|Sun(?:day)?)?
+            \s*:?\s*
+            \d{1,2}(?::\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.)?
+            \s*[-–—to]+\s*
+            \d{1,2}(?::\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.)?
+        )
+    '''
+
+    matches = re.findall(hours_pattern, text, re.IGNORECASE | re.VERBOSE)
+
+    if not matches:
+        # Try simpler pattern
+        simple_pattern = r'((?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*\s*[-–—]?\s*(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)?[a-z]*\s*:?\s*\d{1,2}(?::\d{2})?\s*(?:am|pm)?\s*[-–—to]+\s*\d{1,2}(?::\d{2})?\s*(?:am|pm)?)'
+        matches = re.findall(simple_pattern, text, re.IGNORECASE)
+
+    if not matches:
+        return ''
+
+    # Clean up each match
+    cleaned = []
+    for match in matches:
+        hours = match.strip()
+        # Fix missing space between day and time (e.g., "Thursday10:00" -> "Thursday 10:00")
+        hours = re.sub(r'([a-zA-Z])(\d)', r'\1 \2', hours)
+        # Normalize dashes
+        hours = re.sub(r'\s*[-–—]+\s*', ' - ', hours)
+        # Clean up "to" formatting
+        hours = re.sub(r'\s+to\s+', ' - ', hours, flags=re.IGNORECASE)
+        # Remove extra spaces
+        hours = re.sub(r'\s+', ' ', hours).strip()
+        cleaned.append(hours)
+
+    # Join multiple hour ranges with semicolons
+    result = '; '.join(cleaned)
+
+    # Truncate if too long
+    if len(result) > 120:
+        result = result[:120] + '...'
+
+    return result
+
+
 def parse_pantry_html(html_content):
     """Parse pantry information from foodpantries.org HTML using JSON-LD data."""
     pantries = []
@@ -91,21 +150,9 @@ def parse_pantry_html(html_content):
             # Parse hours from description
             description = data.get('description', '')
             if description:
-                # Extract hours pattern from description
-                hours_match = re.search(
-                    r'(?:Hours?:?\s*)?(?:The\s+)?(\d+(?:st|nd|rd|th)?\s+(?:and\s+\d+(?:st|nd|rd|th)?\s+)?(?:Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)[^.]*\d{1,2}:\d{2}\s*(?:am|pm)?[^.]*)',
-                    description, re.IGNORECASE
-                )
-                if hours_match:
-                    pantry['hours'] = hours_match.group(1).strip()[:150]
-                else:
-                    # Try simpler pattern
-                    hours_match = re.search(
-                        r'((?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)[^.]*\d{1,2}:\d{2}[^.]*)',
-                        description, re.IGNORECASE
-                    )
-                    if hours_match:
-                        pantry['hours'] = hours_match.group(1).strip()[:150]
+                hours = extract_hours(description)
+                if hours:
+                    pantry['hours'] = hours
 
             pantries.append(pantry)
 
@@ -189,21 +236,14 @@ def get_recommended_pantries(city, state, count=3, prefer_secular=True):
 
 
 def format_hours(hours_str):
-    """Format hours string for better readability - split days onto separate lines."""
+    """Format hours string for better readability - split onto separate lines."""
     if not hours_str:
         return ""
 
-    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
-            'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-
     formatted = hours_str.strip()
 
-    # Insert line breaks before day names (except the first one)
-    for day in days:
-        formatted = re.sub(rf'(?<!^)(?<!\n)\s+({day})', rf'<br>{day}', formatted, flags=re.IGNORECASE)
-
-    # Clean up any double breaks
-    formatted = re.sub(r'(<br>)+', '<br>', formatted)
+    # Split on semicolons (used to separate different day ranges)
+    formatted = re.sub(r';\s*', '<br>', formatted)
 
     return formatted
 

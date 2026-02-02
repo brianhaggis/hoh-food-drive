@@ -5,23 +5,14 @@ from models import EmailTemplate
 
 
 def format_hours(hours_str):
-    """Format hours string for better readability - split days onto separate lines."""
+    """Format hours string for better readability - split onto separate lines."""
     if not hours_str:
         return ""
 
-    # Common day patterns to split on
-    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
-            'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-
     formatted = hours_str.strip()
 
-    # Insert line breaks before day names (except the first one)
-    for day in days:
-        # Match day name that's not at the start and not already preceded by a line break
-        formatted = re.sub(rf'(?<!^)(?<!\n)\s+({day})', rf'<br>{day}', formatted, flags=re.IGNORECASE)
-
-    # Clean up any double breaks
-    formatted = re.sub(r'(<br>)+', '<br>', formatted)
+    # Split on semicolons (used to separate different day ranges)
+    formatted = re.sub(r';\s*', '<br>', formatted)
 
     return formatted
 

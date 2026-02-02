@@ -638,23 +638,14 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Utility: Format hours string - split days onto separate lines
+// Utility: Format hours string - split onto separate lines
 function formatHours(hoursStr) {
     if (!hoursStr) return '';
 
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
-                  'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
     let formatted = escapeHtml(hoursStr.trim());
 
-    // Insert line breaks before day names (except at the start)
-    days.forEach(day => {
-        const regex = new RegExp(`\\s+(${day})`, 'gi');
-        formatted = formatted.replace(regex, '<br>$1');
-    });
-
-    // Clean up any double breaks
-    formatted = formatted.replace(/(<br>)+/g, '<br>');
+    // Split on semicolons (used to separate different day ranges)
+    formatted = formatted.replace(/;\s*/g, '<br>');
 
     return formatted;
 }
