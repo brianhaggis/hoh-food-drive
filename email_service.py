@@ -1,6 +1,29 @@
+import re
 import resend
 from flask import current_app
 from models import EmailTemplate
+
+
+def format_hours(hours_str):
+    """Format hours string for better readability - split days onto separate lines."""
+    if not hours_str:
+        return ""
+
+    # Common day patterns to split on
+    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
+            'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+    formatted = hours_str.strip()
+
+    # Insert line breaks before day names (except the first one)
+    for day in days:
+        # Match day name that's not at the start and not already preceded by a line break
+        formatted = re.sub(rf'(?<!^)(?<!\n)\s+({day})', rf'<br>{day}', formatted, flags=re.IGNORECASE)
+
+    # Clean up any double breaks
+    formatted = re.sub(r'(<br>)+', '<br>', formatted)
+
+    return formatted
 
 
 def format_pantries_html(pantries):
@@ -21,7 +44,8 @@ def format_pantries_html(pantries):
         if p.get('phone'):
             html += f"Phone: {p['phone']}<br>"
         if p.get('hours'):
-            html += f"<em>Hours: {p['hours']}</em>"
+            formatted_hours = format_hours(p['hours'])
+            html += f"<em style='font-size: 0.9em; line-height: 1.5;'>Hours: {formatted_hours}</em>"
         html += "</li>"
     html += "</ul>"
     return html

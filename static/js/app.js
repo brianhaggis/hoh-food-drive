@@ -517,7 +517,7 @@ function openVolunteerModal(showId) {
                         <strong>${escapeHtml(p.name || 'Food Pantry')}</strong>
                         ${p.address ? `<div class="pantry-detail">${escapeHtml(p.address)}</div>` : ''}
                         ${p.phone ? `<div class="pantry-detail">${escapeHtml(p.phone)}</div>` : ''}
-                        ${p.hours ? `<div class="pantry-hours">${escapeHtml(p.hours)}</div>` : ''}
+                        ${p.hours ? `<div class="pantry-hours">${formatHours(p.hours)}</div>` : ''}
                     </div>
                 `).join('')}
             `;
@@ -636,6 +636,27 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// Utility: Format hours string - split days onto separate lines
+function formatHours(hoursStr) {
+    if (!hoursStr) return '';
+
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
+                  'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    let formatted = escapeHtml(hoursStr.trim());
+
+    // Insert line breaks before day names (except at the start)
+    days.forEach(day => {
+        const regex = new RegExp(`\\s+(${day})`, 'gi');
+        formatted = formatted.replace(regex, '<br>$1');
+    });
+
+    // Clean up any double breaks
+    formatted = formatted.replace(/(<br>)+/g, '<br>');
+
+    return formatted;
 }
 
 // Smooth scroll for anchor links

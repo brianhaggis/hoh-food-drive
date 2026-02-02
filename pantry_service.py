@@ -188,6 +188,26 @@ def get_recommended_pantries(city, state, count=3, prefer_secular=True):
         return all_pantries[:count]
 
 
+def format_hours(hours_str):
+    """Format hours string for better readability - split days onto separate lines."""
+    if not hours_str:
+        return ""
+
+    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
+            'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+    formatted = hours_str.strip()
+
+    # Insert line breaks before day names (except the first one)
+    for day in days:
+        formatted = re.sub(rf'(?<!^)(?<!\n)\s+({day})', rf'<br>{day}', formatted, flags=re.IGNORECASE)
+
+    # Clean up any double breaks
+    formatted = re.sub(r'(<br>)+', '<br>', formatted)
+
+    return formatted
+
+
 def format_pantries_for_email(pantries):
     """Format pantry list for email HTML."""
     if not pantries:
@@ -202,7 +222,8 @@ def format_pantries_for_email(pantries):
         if p.get('phone'):
             html += f"Phone: {p['phone']}<br>"
         if p.get('hours'):
-            html += f"<em>Hours: {p['hours']}</em>"
+            formatted_hours = format_hours(p['hours'])
+            html += f"<em style='font-size: 0.9em; line-height: 1.5;'>Hours: {formatted_hours}</em>"
         html += "</li>"
     html += "</ul>"
     return html
