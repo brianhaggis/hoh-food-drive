@@ -61,7 +61,7 @@ DEFAULT_VOLUNTEER_BODY = """<!DOCTYPE html>
             <p>You're making a difference with House of Hamill</p>
         </div>
         <div class="content">
-            <p>We're thrilled to have you join our food drive efforts! Your volunteer spirit embodies the community-focused mission that House of Hamill believes in.</p>
+            <p>We're thrilled to have you join our food drive efforts! Hunger is a terrible thing for people in our communities to face, and your efforts will make a bigger difference than you know.</p>
 
             <div class="highlight">
                 <strong>Show Details:</strong><br>
@@ -74,21 +74,22 @@ DEFAULT_VOLUNTEER_BODY = """<!DOCTYPE html>
 
             <h3>What You'll Get:</h3>
             <ul>
-                <li><strong>Two free tickets</strong> to enjoy the show</li>
+                <li><strong>Two free tickets</strong> to enjoy the show (we'll have your name on the guest list at the door)</li>
                 <li>The satisfaction of making a real difference in your community</li>
+                <li>Our sincere gratitude for your time and effort</li>
             </ul>
 
             <h3>What You'll Do:</h3>
             <ul>
-                <li><strong>Before the show (~15 min):</strong> Set up the donation boxes and sign</li>
-                <li><strong>During the show:</strong> Enjoy the concert!</li>
-                <li><strong>After the show:</strong> Collect the donated items, weigh them (we'll have a scale), and deliver to a local food bank</li>
+                <li><strong>Before the show (~15 min):</strong> Set up the donation boxes by the Food Pantry sign</li>
+                <li><strong>During the show:</strong> Enjoy the concert! Sing along, dance, enjoy yourselves :)</li>
+                <li><strong>After the show:</strong> Collect the donated items, weigh them (we'll have a scale), and deliver to a local food bank. Suggested locations are below, but we trust you to get the donations to any collection point that's convenient for you - preferably within a couple of days.</li>
             </ul>
 
             <h3>Please Bring:</h3>
             <ul>
-                <li>Boxes or bins to transport the donations (we don't have much room in our touring vehicle!)</li>
-                <li>A vehicle to deliver items to the food bank</li>
+                <li><strong>Boxes or bins to transport the donations</strong> (we don't have much room in our touring vehicle, so we'll count on you to collect the food in containers you can cart away afterwards)!</li>
+                <li><strong>A vehicle</strong> to deliver items to the food bank. You might wind up with a LOT of food to transport, so it's important you arrive in a getaway car that has enough space!</li>
             </ul>
 
             <h3>Items We're Collecting:</h3>
@@ -97,16 +98,17 @@ DEFAULT_VOLUNTEER_BODY = """<!DOCTYPE html>
                 <li>Dry goods (pasta, rice, cereal)</li>
                 <li>Peanut butter and other shelf-stable proteins</li>
                 <li>Baby food and formula</li>
+                <li>Sealed items only - nothing that isn't full, or has been opened</li>
             </ul>
 
             {pantries_html}
 
-            <p>A member of our team will reach out closer to the show date with specific logistics and contact information.</p>
+            <p>Feel free to respond to this email with any questions - otherwise, we'll see you at the show :)</p>
 
-            <p>Thank you for being part of the House of Hamill family and helping us fight hunger in our communities!</p>
+            <p>Thank you for being part of something good - and helping us fight hunger in our communities!</p>
 
             <div class="footer">
-                <p>With gratitude,<br><strong>House of Hamill</strong></p>
+                <p>With gratitude,<br><strong>Brian, Rose &amp; Caroline</strong></p>
                 <p><a href="https://www.houseofhamill.com">www.houseofhamill.com</a></p>
             </div>
         </div>
