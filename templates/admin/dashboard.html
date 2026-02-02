@@ -414,7 +414,7 @@
                         <label>Meals Provided</label>
                         <div class="stat-display">
                             <span id="meals-provided">--</span>
-                            <small>Auto-calculated (1.2 meals per pound)</small>
+                            <small>Auto-calculated (1.2 lbs per meal)</small>
                         </div>
                     </div>
                     <div class="stat-input">
@@ -673,10 +673,10 @@
                 document.getElementById('meals-provided').textContent = data.meals_provided.toLocaleString();
             });
 
-        // Update meals calculation when pounds change
+        // Update meals calculation when pounds change (1.2 lbs per meal)
         function updateMealsCalculation() {
             const pounds = parseInt(document.getElementById('pounds-input').value) || 0;
-            const meals = Math.floor(pounds * 1.2);
+            const meals = Math.floor(pounds / 1.2);
             document.getElementById('meals-provided').textContent = meals.toLocaleString();
         }
 

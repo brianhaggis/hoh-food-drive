@@ -270,8 +270,8 @@ def get_stats():
     ).count()
 
     pounds = stats.pounds_collected if stats else 0
-    # Auto-calculate meals at 1.2 meals per pound
-    meals = int(pounds * 1.2)
+    # Auto-calculate meals at 1.2 lbs per meal
+    meals = int(pounds / 1.2) if pounds > 0 else 0
 
     return jsonify({
         'pounds_collected': pounds,
