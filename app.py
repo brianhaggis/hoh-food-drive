@@ -269,18 +269,15 @@ def get_stats():
         Show.excluded == False
     ).count()
 
-    if stats:
-        return jsonify({
-            'pounds_collected': stats.pounds_collected,
-            'meals_provided': stats.meals_provided,
-            'shows_participated': shows_participated,
-            'volunteers': volunteer_count
-        })
+    pounds = stats.pounds_collected if stats else 0
+    # Auto-calculate meals at 1.2 meals per pound
+    meals = int(pounds * 1.2)
+
     return jsonify({
-        'pounds_collected': 0,
-        'meals_provided': 0,
+        'pounds_collected': pounds,
+        'meals_provided': meals,
         'shows_participated': shows_participated,
-        'volunteers': 0
+        'volunteers': volunteer_count
     })
 
 
@@ -435,15 +432,13 @@ def toggle_show(show_id):
 @app.route('/admin/stats', methods=['POST'])
 @admin_required
 def update_stats():
-    """Update impact statistics."""
+    """Update impact statistics (only pounds - meals and shows are auto-calculated)."""
     stats = ImpactStats.query.first()
     if not stats:
         stats = ImpactStats()
         db.session.add(stats)
 
     stats.pounds_collected = int(request.form.get('pounds_collected', 0))
-    stats.meals_provided = int(request.form.get('meals_provided', 0))
-    stats.shows_participated = int(request.form.get('shows_participated', 0))
     db.session.commit()
 
     flash('Stats updated successfully', 'success')

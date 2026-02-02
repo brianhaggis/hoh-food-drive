@@ -408,11 +408,14 @@
                 <div class="stats-grid">
                     <div class="stat-input">
                         <label>Pounds Collected</label>
-                        <input type="number" name="pounds_collected" value="{{ stats.pounds_collected if stats else 0 }}">
+                        <input type="number" name="pounds_collected" id="pounds-input" value="{{ stats.pounds_collected if stats else 0 }}" oninput="updateMealsCalculation()">
                     </div>
                     <div class="stat-input">
                         <label>Meals Provided</label>
-                        <input type="number" name="meals_provided" value="{{ stats.meals_provided if stats else 0 }}">
+                        <div class="stat-display">
+                            <span id="meals-provided">--</span>
+                            <small>Auto-calculated (1.2 meals per pound)</small>
+                        </div>
                     </div>
                     <div class="stat-input">
                         <label>Shows Participated</label>
@@ -420,7 +423,6 @@
                             <span id="shows-participated">--</span>
                             <small>Auto-calculated from past shows</small>
                         </div>
-                        <input type="hidden" name="shows_participated" value="0">
                     </div>
                 </div>
                 <button type="submit" class="btn">Update Stats</button>
@@ -663,12 +665,23 @@
         let currentShowId = null;
         let currentPantries = [];
 
-        // Fetch shows participated count
+        // Fetch stats (shows participated and meals)
         fetch('/api/stats')
             .then(r => r.json())
             .then(data => {
                 document.getElementById('shows-participated').textContent = data.shows_participated;
+                document.getElementById('meals-provided').textContent = data.meals_provided.toLocaleString();
             });
+
+        // Update meals calculation when pounds change
+        function updateMealsCalculation() {
+            const pounds = parseInt(document.getElementById('pounds-input').value) || 0;
+            const meals = Math.floor(pounds * 1.2);
+            document.getElementById('meals-provided').textContent = meals.toLocaleString();
+        }
+
+        // Initial calculation on page load
+        updateMealsCalculation();
 
         // Load current settings
         fetch('/api/settings')
