@@ -269,8 +269,11 @@ def volunteer_signup():
 
         # Send emails (non-blocking - signup succeeds even if emails fail)
         try:
-            send_volunteer_confirmation(volunteer.email, volunteer.name, show)
-            send_admin_notification(volunteer, show)
+            volunteer_email_sent = send_volunteer_confirmation(volunteer.email, volunteer.name, show)
+            app.logger.info(f"Volunteer confirmation email to {volunteer.email}: {'sent' if volunteer_email_sent else 'FAILED'}")
+
+            admin_email_sent = send_admin_notification(volunteer, show)
+            app.logger.info(f"Admin notification email: {'sent' if admin_email_sent else 'FAILED'}")
         except Exception as e:
             app.logger.error(f"Error sending signup emails: {e}")
 

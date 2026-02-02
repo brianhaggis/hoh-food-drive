@@ -194,7 +194,9 @@ def send_volunteer_confirmation(volunteer_email, volunteer_name, show):
         resend.Emails.send(params)
         return True
     except Exception as e:
-        current_app.logger.error(f"Error sending volunteer confirmation: {e}")
+        import traceback
+        current_app.logger.error(f"Error sending volunteer confirmation to {volunteer_email}: {e}")
+        current_app.logger.error(f"Traceback: {traceback.format_exc()}")
         return False
 
 
