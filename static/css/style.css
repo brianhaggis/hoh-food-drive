@@ -587,6 +587,16 @@ img {
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
+.marker-excluded {
+    width: 20px;
+    height: 20px;
+    background: #999;
+    border-radius: 50%;
+    border: 2px solid var(--color-white);
+    box-shadow: var(--shadow-sm);
+    opacity: 0.6;
+}
+
 /* Shows Section */
 .shows-section {
     padding: 80px 0;
@@ -677,6 +687,23 @@ img {
 .show-status.has-volunteer {
     background: rgba(220, 53, 69, 0.1);
     color: var(--color-danger);
+}
+
+/* Excluded/Unavailable shows */
+.show-card.excluded {
+    opacity: 0.55;
+    border-left: 4px solid #999;
+}
+
+.show-card.excluded:hover {
+    transform: none;
+    box-shadow: var(--shadow-sm);
+}
+
+.show-status.excluded {
+    background: rgba(128, 128, 128, 0.15);
+    color: #777;
+    font-style: italic;
 }
 
 .volunteer-btn {

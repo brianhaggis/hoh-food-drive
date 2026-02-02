@@ -52,11 +52,11 @@ class Show(db.Model):
             'latitude': self.latitude,
             'longitude': self.longitude,
             'has_volunteer': self.has_volunteer,
+            'excluded': self.excluded,  # Always include for frontend display
             'ticket_url': self.ticket_url,
             'pantries': self.get_pantries()
         }
         if include_admin:
-            data['excluded'] = self.excluded
             data['exclude_reason'] = self.exclude_reason
         return data
 

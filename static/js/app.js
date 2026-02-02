@@ -348,6 +348,23 @@ function renderShows(shows, showDistances = false) {
             .filter(Boolean)
             .join(', ');
 
+        // Handle excluded shows (unavailable)
+        if (show.excluded) {
+            const distanceText = showDistances && show.distance !== undefined
+                ? `<div class="show-distance">${Math.round(show.distance)} miles away</div>`
+                : '';
+
+            return `
+                <div class="show-card excluded" data-show-id="${show.id}">
+                    ${distanceText}
+                    <div class="show-date">${formattedDate} • ${formattedTime}</div>
+                    <div class="show-venue">${escapeHtml(show.venue)}</div>
+                    <div class="show-location">${escapeHtml(location)}</div>
+                    <div class="show-status excluded">Unavailable</div>
+                </div>
+            `;
+        }
+
         const statusClass = show.has_volunteer ? 'has-volunteer' : 'needs-volunteer';
         const statusText = show.has_volunteer
             ? '❤️ Volunteer Secured'
@@ -393,10 +410,15 @@ function renderMapMarkers(shows) {
 
         bounds.push([show.latitude, show.longitude]);
 
-        // Create custom icon
-        const iconHtml = show.has_volunteer
-            ? '<div class="marker-has-volunteer">❤️</div>'
-            : '<div class="marker-needs-volunteer"></div>';
+        // Create custom icon based on show status
+        let iconHtml;
+        if (show.excluded) {
+            iconHtml = '<div class="marker-excluded"></div>';
+        } else if (show.has_volunteer) {
+            iconHtml = '<div class="marker-has-volunteer">❤️</div>';
+        } else {
+            iconHtml = '<div class="marker-needs-volunteer"></div>';
+        }
 
         const icon = L.divIcon({
             html: iconHtml,
@@ -419,27 +441,33 @@ function renderMapMarkers(shows) {
             .filter(Boolean)
             .join(', ');
 
+        let statusContent;
+        if (show.excluded) {
+            statusContent = '<span style="color: #999; font-style: italic;">Unavailable</span>';
+        } else if (show.has_volunteer) {
+            statusContent = '<span style="color: #dc3545;">❤️ Volunteer Secured</span>';
+        } else {
+            statusContent = `<button
+                onclick="openVolunteerModal(${show.id})"
+                style="
+                    background: #8B4513;
+                    color: white;
+                    border: none;
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-weight: 500;
+                "
+            >Volunteer</button>`;
+        }
+
         const popupContent = `
             <div style="text-align: center; min-width: 180px;">
                 <strong style="font-size: 14px;">${escapeHtml(show.venue)}</strong><br>
                 <span style="color: #666;">${escapeHtml(location)}</span><br>
                 <span style="color: #8B4513; font-weight: 500;">${formattedDate}</span><br>
                 <div style="margin-top: 10px;">
-                    ${show.has_volunteer
-                        ? '<span style="color: #dc3545;">❤️ Volunteer Secured</span>'
-                        : `<button
-                            onclick="openVolunteerModal(${show.id})"
-                            style="
-                                background: #8B4513;
-                                color: white;
-                                border: none;
-                                padding: 8px 16px;
-                                border-radius: 4px;
-                                cursor: pointer;
-                                font-weight: 500;
-                            "
-                        >Volunteer</button>`
-                    }
+                    ${statusContent}
                 </div>
             </div>
         `;
@@ -457,7 +485,7 @@ function renderMapMarkers(shows) {
 // Open volunteer modal
 function openVolunteerModal(showId) {
     const show = shows.find(s => s.id === showId);
-    if (!show || show.has_volunteer) return;
+    if (!show || show.has_volunteer || show.excluded) return;
 
     const date = new Date(show.date);
     const formattedDate = date.toLocaleDateString('en-US', {

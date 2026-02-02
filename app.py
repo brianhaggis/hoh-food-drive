@@ -195,10 +195,9 @@ def index():
 
 @app.route('/api/shows')
 def get_shows():
-    """Get all upcoming shows (excludes hidden shows)."""
+    """Get all upcoming shows (includes excluded shows for display)."""
     shows = Show.query.filter(
-        Show.date >= datetime.utcnow(),
-        Show.excluded == False
+        Show.date >= datetime.utcnow()
     ).order_by(Show.date).all()
     return jsonify([show.to_dict() for show in shows])
 
@@ -225,6 +224,10 @@ def volunteer_signup():
     show = Show.query.get(data['show_id'])
     if not show:
         return jsonify({'error': 'Show not found'}), 404
+
+    # Check if show is excluded (unavailable for volunteers)
+    if show.excluded:
+        return jsonify({'error': 'This show is not available for volunteers'}), 400
 
     # Check if show already has a volunteer
     if show.has_volunteer:
