@@ -748,18 +748,44 @@ img {
 .music-section {
     padding: 80px 0;
     background: var(--color-white);
-    text-align: center;
 }
 
 .music-section h2 {
     font-size: 2.5rem;
     color: var(--color-primary);
-    margin-bottom: 15px;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.music-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: start;
+}
+
+.music-bio {
+    text-align: left;
+}
+
+.music-bio p {
+    color: var(--color-text-light);
+    font-size: 1.05rem;
+    line-height: 1.7;
 }
 
 .spotify-embed {
-    max-width: 800px;
-    margin: 40px auto 0;
+    max-width: 100%;
+}
+
+@media (max-width: 768px) {
+    .music-content {
+        grid-template-columns: 1fr;
+    }
+
+    .music-bio {
+        text-align: left;
+    }
 }
 
 /* Modal */
