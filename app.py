@@ -14,7 +14,7 @@ from email_service import send_volunteer_confirmation, send_admin_notification
 from pantry_service import get_recommended_pantries, format_pantries_for_display
 
 # Site password (set to None or empty string to disable)
-SITE_PASSWORD = os.environ.get('SITE_PASSWORD', 'icecream')
+SITE_PASSWORD = os.environ.get('SITE_PASSWORD', '')
 
 
 def check_site_password():
