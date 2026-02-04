@@ -1,6 +1,7 @@
 import re
 import resend
 from flask import current_app
+from premailer import transform
 from models import EmailTemplate
 
 
@@ -15,6 +16,49 @@ def format_hours(hours_str):
     formatted = re.sub(r';\s*', '<br>', formatted)
 
     return formatted
+
+
+# CSS styles for volunteer emails - injected before inlining
+VOLUNTEER_EMAIL_STYLES = """
+<style>
+    body { font-family: 'Georgia', serif; color: #2c2c2c; line-height: 1.6; }
+    .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #43a047 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #f1f8e9; padding: 30px; border-radius: 0 0 8px 8px; }
+    .highlight { background: #fff; padding: 20px; border-left: 4px solid #2e7d32; margin: 20px 0; }
+    h1 { margin: 0; font-weight: normal; }
+    .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+</style>
+"""
+
+
+def inline_css(html):
+    """Convert CSS styles to inline styles for email compatibility.
+
+    This ensures emails render correctly in clients like Gmail and Outlook
+    that strip <style> blocks.
+    """
+    try:
+        # If the HTML doesn't have a <style> block, inject our default styles
+        if '<style>' not in html and '</style>' not in html:
+            # Find the <head> tag and inject styles, or wrap if no proper structure
+            if '<head>' in html:
+                html = html.replace('<head>', '<head>' + VOLUNTEER_EMAIL_STYLES)
+            elif '<html>' in html:
+                html = html.replace('<html>', '<html><head>' + VOLUNTEER_EMAIL_STYLES + '</head>')
+            else:
+                # Wrap the whole thing in proper HTML structure with styles
+                html = f'''<!DOCTYPE html>
+<html>
+<head>{VOLUNTEER_EMAIL_STYLES}</head>
+<body>{html}</body>
+</html>'''
+
+        # Use premailer to convert CSS to inline styles
+        return transform(html, remove_classes=False, strip_important=False)
+    except Exception as e:
+        current_app.logger.warning(f"CSS inlining failed, using original HTML: {e}")
+        return html
 
 
 def format_pantries_html(pantries):
@@ -186,6 +230,9 @@ def send_volunteer_confirmation(volunteer_email, volunteer_name, show):
         body = body.replace('{show_date}', show_date)
         body = body.replace('{pantries_html}', pantries_html)
         body = body.replace('{venue_history}', venue_history_html)
+
+        # Convert CSS to inline styles for email client compatibility
+        body = inline_css(body)
 
         params = {
             "from": "House of Hamill Volunteers <volunteers@houseofhamill.com>",
