@@ -152,6 +152,19 @@ def scheduled_sync():
         app.logger.info("Completed scheduled show sync")
 
 
+# Sync shows on cold start — critical on Render free tier where the app sleeps
+# and APScheduler can't fire at its scheduled time
+with app.app_context():
+    try:
+        sync_shows(
+            db, Show,
+            app.config['ARTIST_NAME'],
+            app.config['BANDSINTOWN_API_KEY']
+        )
+        app.logger.info("Completed startup show sync")
+    except Exception as e:
+        app.logger.warning(f"Startup sync failed (non-fatal): {e}")
+
 scheduler = BackgroundScheduler()
 scheduler.add_job(func=scheduled_sync, trigger="cron", hour=6, minute=0)
 scheduler.start()
